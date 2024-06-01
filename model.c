@@ -22,6 +22,7 @@ struct Model *Model_create(float x, float y, float z, float rx, float ry, float 
 }
 
 void Model_destroy(struct Model *m) {
+    free(m->mesh.tris);
     free(m);
 }
 
@@ -43,125 +44,124 @@ inline void Model_scale(struct Model *m, float delta_sx, float delta_sy, float d
     Matrix4_mul(&m->model_to_world, &scale, &m->model_to_world);
 }
 
-// struct Model *Model_unit_cube() {
-//     struct Mesh model_mesh;
+struct Model *Model_unit_cube() {
+    struct Mesh model_mesh;
+    model_mesh.num_tris = 12;
 
-//     // These are in model coordinates.
-//     struct Tri mesh_tris[100] = {    // Tri array.
-//         {                            // Tri struct.
-//                                      // Vertex winding order is CW here.
-//             Vector3_create(0, 0, 0), // Vertex 1.
-//             Vector3_create(0, 0, 1), // Vertex 2.
-//             Vector3_create(1, 0, 0), // Vertex 3.
-//             rand() % 256,            // r
-//             rand() % 256,            // g
-//             rand() % 256             // b
-//         },
-//         {                            
-//             Vector3_create(1, 0, 1), 
-//             Vector3_create(1, 0, 0), 
-//             Vector3_create(0, 0, 1),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(0, 1, 0), 
-//             Vector3_create(0, 1, 1), 
-//             Vector3_create(1, 1, 0),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(1, 1, 1), 
-//             Vector3_create(1, 1, 0), 
-//             Vector3_create(0, 1, 1),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(0, 0, 1), 
-//             Vector3_create(0, 1, 1), 
-//             Vector3_create(1, 0, 1),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256
-//         },
-//         {                            
-//             Vector3_create(1, 1, 1), 
-//             Vector3_create(1, 0, 1), 
-//             Vector3_create(0, 1, 1),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(0, 0, 0), 
-//             Vector3_create(0, 1, 0), 
-//             Vector3_create(1, 0, 0),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256
-//         },
-//         {                            
-//             Vector3_create(1, 1, 0), 
-//             Vector3_create(1, 0, 0), 
-//             Vector3_create(0, 1, 0),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(0, 0, 0), 
-//             Vector3_create(0, 1, 0), 
-//             Vector3_create(0, 0, 1),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(0, 1, 1), 
-//             Vector3_create(0, 0, 1), 
-//             Vector3_create(0, 1, 0),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(1, 0, 0), 
-//             Vector3_create(1, 1, 0), 
-//             Vector3_create(1, 0, 1),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         },
-//         {                            
-//             Vector3_create(1, 1, 1), 
-//             Vector3_create(1, 0, 1), 
-//             Vector3_create(1, 1, 0),
-//             rand() % 256,
-//             rand() % 256,
-//             rand() % 256  
-//         }
-//     };
-
-//     // Hacky modification to make center of cube (0, 0, 0).
-//     struct Vector3 shift = Vector3_create(-0.5, -0.5, -0.5);
-//     for (int i = 0; i < 12; ++i) {
-//         mesh_tris[i].p1 = Vector3_add(mesh_tris[i].p1, shift);
-//         mesh_tris[i].p2 = Vector3_add(mesh_tris[i].p2, shift);
-//         mesh_tris[i].p3 = Vector3_add(mesh_tris[i].p3, shift);
-//     }
-
-//     model_mesh.tris     = mesh_tris;
-//     model_mesh.num_tris = 12;
+    struct Tri *mesh_tris = malloc(sizeof(struct Tri) * model_mesh.num_tris);
     
-//     return Model_create(
-//         0, 0, 0, 
-//         0, 0, 0, 
-//         1, 1, 1, 
-//         model_mesh
-//     );
-// }
+    // These are in model-local coordinates.
+    mesh_tris[0] = (struct Tri){
+        Vector3_create(0, 0, 0), // Vertex 1.
+        Vector3_create(0, 0, 1), // Vertex 2.
+        Vector3_create(1, 0, 0), // Vertex 3.
+        rand() % 256,            // r
+        rand() % 256,            // g
+        rand() % 256             // b
+    };
+    mesh_tris[1] = (struct Tri){                            
+        Vector3_create(1, 0, 1), 
+        Vector3_create(1, 0, 0), 
+        Vector3_create(0, 0, 1),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[2] = (struct Tri){                            
+        Vector3_create(0, 1, 0), 
+        Vector3_create(0, 1, 1), 
+        Vector3_create(1, 1, 0),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[3] = (struct Tri){                            
+        Vector3_create(1, 1, 1), 
+        Vector3_create(1, 1, 0), 
+        Vector3_create(0, 1, 1),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[4] = (struct Tri){                           
+        Vector3_create(0, 0, 1), 
+        Vector3_create(0, 1, 1), 
+        Vector3_create(1, 0, 1),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256
+    };
+    mesh_tris[5] = (struct Tri){                            
+        Vector3_create(1, 1, 1), 
+        Vector3_create(1, 0, 1), 
+        Vector3_create(0, 1, 1),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[6] = (struct Tri){                            
+        Vector3_create(0, 0, 0), 
+        Vector3_create(0, 1, 0), 
+        Vector3_create(1, 0, 0),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256
+    };
+    mesh_tris[7] = (struct Tri){                            
+        Vector3_create(1, 1, 0), 
+        Vector3_create(1, 0, 0), 
+        Vector3_create(0, 1, 0),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[8] = (struct Tri){                            
+        Vector3_create(0, 0, 0), 
+        Vector3_create(0, 1, 0), 
+        Vector3_create(0, 0, 1),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[9] = (struct Tri){                            
+        Vector3_create(0, 1, 1), 
+        Vector3_create(0, 0, 1), 
+        Vector3_create(0, 1, 0),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[10] = (struct Tri){                            
+        Vector3_create(1, 0, 0), 
+        Vector3_create(1, 1, 0), 
+        Vector3_create(1, 0, 1),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+    mesh_tris[11] = (struct Tri){                            
+        Vector3_create(1, 1, 1), 
+        Vector3_create(1, 0, 1), 
+        Vector3_create(1, 1, 0),
+        rand() % 256,
+        rand() % 256,
+        rand() % 256  
+    };
+
+    // Make center of cube (0, 0, 0).
+    struct Vector3 shift = Vector3_create(-0.5, -0.5, -0.5);
+    for (int i = 0; i < model_mesh.num_tris; ++i) {
+        mesh_tris[i].p1 = Vector3_add(mesh_tris[i].p1, shift);
+        mesh_tris[i].p2 = Vector3_add(mesh_tris[i].p2, shift);
+        mesh_tris[i].p3 = Vector3_add(mesh_tris[i].p3, shift);
+    }
+
+    model_mesh.tris = mesh_tris;
+
+    return Model_create(
+        0, 0, 0, 
+        0, 0, 0, 
+        1, 1, 1, 
+        model_mesh
+    );
+}
