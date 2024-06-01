@@ -14,7 +14,8 @@ struct Matrix4; // Forward declaration.
 
 // We move Vector3 instances by value.
 
-inline struct Vector3 Vector3_create(float x, float y, float z);
+inline struct Vector3 Vector3_create_point(float x, float y, float z);
+inline struct Vector3 Vector3_create_direction(float x, float y, float z);
 
 // Operations.
 inline struct Vector3 Vector3_add(const struct Vector3 v1, const struct Vector3 v2);

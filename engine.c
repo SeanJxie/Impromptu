@@ -5,6 +5,9 @@
 TODO: Clipping
       Backface culling
       Depth check (filling and using depth buffer)
+      Put raster function in their own raster.c/.h
+
+      Test Model-View-Projection (MVP) matrix performance.
 */
 
 struct Engine *Engine_create(int window_width, int window_height) {
@@ -164,7 +167,7 @@ void Engine_run(struct Engine *e) {
     int running = 1;
     SDL_Event event;
 
-    struct Vector3 camera_pos = Vector3_create(0, 0, 0);
+    struct Vector3 camera_pos = Vector3_create_point(0, 0, 0);
     while (running) {
         frame_start = frame_end;
         frame_end   = SDL_GetPerformanceCounter();
@@ -215,8 +218,8 @@ void Engine_run(struct Engine *e) {
             // TODO: recompute only when view has changed.
             Matrix4_look_at(
                 camera_pos, 
-                Vector3_create(0, 0, camera_pos.z + 1),
-                Vector3_create(0, 1, 0), 
+                Vector3_create_point(0, 0, camera_pos.z + 1),
+                Vector3_create_direction(0, 1, 0), 
                 &view
             );
 
@@ -236,34 +239,11 @@ void Engine_run(struct Engine *e) {
             // The w coordinates have been changed by the perspective transformation.
             // The previous perspective transformation has transformed the view frustrum 
             // planes into a cube spanning (-w, w).
+            // 
+            // So, we have -w <= x <= w and -w <= y <= w 
 
-            // Perform clipping (i.e. the removal of triangles outside of
-            // the clipping bounds and reconstruction of triangles partially
-            // outside of clipping bounds).
-
-            // Why do we perform clipping here and not after w division?
-            // Division is expensive, so we want to do as little as possible (i.e. after clipping).
-
-            if (t.p1.x < -t.p1.w) {
-                printf("OUT LEFT\n");
-            }
-            if (t.p1.x > t.p1.w) {
-                printf("OUT RIGHT\n");
-            }
-            if (t.p1.y < -t.p1.w) {
-                printf("OUT TOP\n");
-            }
-            if (t.p1.y > t.p1.w) {
-                printf("OUT BOT\n");
-            }
-            if (t.p1.z > t.p1.w) {
-                printf("OUT FAR\n");
-                printf("%f\n", t.p1.z);
-            }
-            if (t.p1.z < -t.p1.w) {
-                printf("OUT NEAR\n");
-                printf("%f\n", t.p1.z);
-            }
+            // Clip triangle against left clip plane.
+            // TODO
             
             // Convert homogeneous coordinates to Cartesian for rasterization
             // by performing what is called w/homogeneous/perspective division.

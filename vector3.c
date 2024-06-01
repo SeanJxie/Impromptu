@@ -1,19 +1,25 @@
 #include "vector3.h"
 
-inline struct Vector3 Vector3_create(float x, float y, float z) {
-    return (struct Vector3){x, y, z, 1};
+inline struct Vector3 Vector3_create_point(float x, float y, float z) {
+    // A point has w = 1.
+    return (struct Vector3){x, y, z, 1}; 
+}
+
+inline struct Vector3 Vector3_create_direction(float x, float y, float z) {
+    // A direction (represented as a point at infinity) has w = 0.
+    return (struct Vector3){x, y, z, 0}; 
 }
 
 inline struct Vector3 Vector3_add(const struct Vector3 v1, const struct Vector3 v2) {
-    return (struct Vector3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, 1};
+    return (struct Vector3){v1.x + v2.x, v1.y + v2.y, v1.z + v2.z, v1.w + v2.w};
 }
 
 inline struct Vector3 Vector3_sub(const struct Vector3 v1, const struct Vector3 v2) {
-    return (struct Vector3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, 1};
+    return (struct Vector3){v1.x - v2.x, v1.y - v2.y, v1.z - v2.z, v1.w - v2.w};
 }
 
 inline struct Vector3 Vector3_smul(const struct Vector3 v, const float s) {
-    return (struct Vector3){s * v.x, s * v.y, s * v.z, 1};
+    return (struct Vector3){s * v.x, s * v.y, s * v.z, s * v.w};
 }
 
 inline struct Vector3 Vector3_sdiv(const struct Vector3 v, const float s) {
@@ -25,7 +31,7 @@ inline struct Vector3 Vector3_cross(const struct Vector3 v1, const struct Vector
         v1.y * v2.z - v1.z * v2.y,
         v1.z * v2.x - v1.x * v2.z,
         v1.x * v2.y - v1.y * v2.x,
-        1
+        0 // Cross product only makes sense in terms of directions.
     };
 }
 
