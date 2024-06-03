@@ -15,15 +15,23 @@ struct Engine {
     SDL_Window   *window;
     SDL_Renderer *renderer;
 
+    // Window.
     int   window_width;
     int   window_height;
+    float half_window_width;
+    float half_window_height;
     float aspect_ratio;
 
+    // Buffers.
     SDL_Texture   *frame_texture;
     unsigned char *color_buffer;
     float         *depth_buffer;
     size_t         color_buffer_size;
     size_t         depth_buffer_size;
+
+    // Controls.
+    float move_speed;
+    float look_speed;
 };
 
 // We move Engines instances with heap pointers.

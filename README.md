@@ -1,10 +1,10 @@
 # Impromptu
 
-This is my personal CPU-based 3D graphics engine that implements a minimal 3D graphics API. The intent of this project is to give me a better understanding of what popular implementations of specifications such as OpenGL, Vulkan, and Direct3D do under the hood.
+This is my personal CPU-based 3D graphics engine that implements a minimal 3D graphics API. The intent of this project is to give me a better understanding of what implementations of graphics APIs such as OpenGL, Vulkan, and Direct3D do under the hood.
 
-As result of this "from-scratch" nature, the only external library used is SDL2 (for window and user input management).
+The only required external library is [SDL2](https://github.com/libsdl-org/SDL) (for window and user input management).
 
-By default, Impromptu implements perspective projection with first-person camera controls.
+By default, Impromptu uses perspective projection with first-person camera controls.
 
 # Building and Running
 
@@ -42,3 +42,5 @@ Here are some resources I found helpful along the way:
   - Article on triangle clipping.
 - https://learnwebgl.brown37.net/08_projections/projections_perspective.html#:~:text=A%20perspective%20projection%20defines%20a,parallel%20to%20the%20X%2DY%20plane.
   - Nice interactive demonstration and derivation of the perspective projection matrix.
+- http://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
+  - First-person controls.
