@@ -178,43 +178,15 @@ void Matrix4_scale(float sx, float sy, float sz, struct Matrix4 *out) {
 }
 
 void Matrix4_perspective(float fov, float aspect_ratio, float znear, float zfar, struct Matrix4 *out) {
-    struct Matrix4 persp_no_scale;
-    Matrix4_zero(&persp_no_scale);
+    Matrix4_zero(out);
 
-    persp_no_scale.x00 = 1;
-    persp_no_scale.x11 = aspect_ratio;
-    persp_no_scale.x22 = zfar / (zfar - znear);
-    persp_no_scale.x23 = -zfar * znear / (zfar - znear);
-    persp_no_scale.x32 = 1;
-
-    /*
-    As we have it above, the coordinates map as follows:
-    (note (x, y, z) are camera-local coordinates).
-
-        x' -> x
-        y' -> y * aspect_ratio 
-            = y * (x_res / y_res)
-
-              f(z - nw)
-        z' -> ---------
-                f - n
-
-        w' -> z
-    
-    To account for fov, we need to scale (x, y) to fit within [-1, 1].
-
-    tanf(fov / 2) is the length from one side of the view frustum to the xz or yz plane at z = 1.
-    Dividing x and y by this value normalizes them to unit lengths.
-
-    Also, to account for the aspect ratio (xres / yres), we scale the y coordinate.
-    */
-
-    struct Matrix4 scale;
     float inv_tan = 1 / tanf(RAD(fov) * 0.5);
-    Matrix4_scale(inv_tan,  inv_tan, 1, &scale);
-
-    // First apply the perpspective with no scale, then scale.
-    Matrix4_mul(&scale, &persp_no_scale, out);
+    
+    out->x00 = inv_tan;
+    out->x11 = aspect_ratio * inv_tan;
+    out->x22 = zfar / (zfar - znear);
+    out->x23 = -zfar * znear / (zfar - znear);
+    out->x32 = 1;
 }
 
 inline void Matrix4_look_at(struct Vector3 eye, struct Vector3 target, struct Vector3 up, struct Matrix4 *out) {

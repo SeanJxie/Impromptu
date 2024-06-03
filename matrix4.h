@@ -8,6 +8,8 @@
 
 struct Matrix4 {
     // Notation is row-column,
+    // Disregarding struct padding, 
+    // the matrix is stored in row-major order.
     float x00, x01, x02, x03,
           x10, x11, x12, x13,
           x20, x21, x22, x23,
