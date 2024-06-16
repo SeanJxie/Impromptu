@@ -21,12 +21,20 @@ struct Vector3; // Forward declaration.
 // We move Matrix4 instances with stack pointers.
 
 // Operations.
-inline void Matrix4_add(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out);
-inline void Matrix4_mul(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out);
+inline void           Matrix4_add(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out);
+inline void           Matrix4_sub(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out);
+inline void           Matrix4_mul(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out);
+inline void           Matrix4_smul(const struct Matrix4 *a, float s, struct Matrix4 *out);
+inline struct Vector3 Matrix4_vmul(const struct Matrix4 *a, struct Vector3 v);
+inline void           Matrix4_transpose(const struct Matrix4 *a, struct Matrix4 *out);
+inline float          Matrix4_tr(const struct Matrix4 *a);
+inline float          Matrix4_det(const struct Matrix4 *a);
+inline void           Matrix4_inverse(const struct Matrix4 *a, struct Matrix4 *out);
+inline void           Matrix4_copy(const struct Matrix4 *a, struct Matrix4 *out);
 
 // Transformations.
 
-#define RAD(x) (x * 3.14159265358979323846 / 180)
+#define RAD(x) (x * 3.14159265358979323846264338327950288 / 180)
 
 void        Matrix4_zero(struct Matrix4 *out);
 void        Matrix4_identity(struct Matrix4 *out);

@@ -10,8 +10,6 @@ struct Vector3 {
     float x, y, z, w;
 }; 
 
-struct Matrix4; // Forward declaration.
-
 // We move Vector3 instances by value.
 
 inline struct Vector3 Vector3_create_point(float x, float y, float z);
@@ -27,9 +25,8 @@ inline float          Vector3_dot(struct Vector3 v1, struct Vector3 v2);
 inline float          Vector3_norm(struct Vector3 v);
 inline float          Vector3_norm_squared(struct Vector3 v);
 inline struct Vector3 Vector3_normalize(struct Vector3 v);
-inline struct Vector3 Vector3_mul_Matrix4(struct Vector3 v, const struct Matrix4 *m);
 
 // Utility.
-inline void           Vector3_print(struct Vector3 v);
+inline void           Vector3_print(const char *str, struct Vector3 v);
 
 #endif

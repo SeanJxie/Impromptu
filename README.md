@@ -17,30 +17,23 @@ gcc main.c engine.c model.c vector3.c matrix4.c -o out.exe -pedantic -Wall -Werr
 When running the program, make sure `SDL2.dll` is in the same directory as the output executable.
 
 # Resources
-Here are some resources I found helpful along the way:
-- https://www.songho.ca/opengl
-  -  For detailed (occasionally math-heavy) explanations of OpenGL concepts.
-- https://learnopengl.com
-  - For a general overview of OpenGL concepts.
-- https://www.pbr-book.org/4ed 
-  - Although this book is on physically based rendering of images via raytracing, it is very rigorous in it's explanations of coordinate spaces and transformations for 3D rendering in general. 
-- https://computergraphics.stackexchange.com
-  - A forum with expert answers for all things computer graphics.
-- https://github.com/SeanJxie/3d-engine-from-scratch/tree/main
-  - An old project of mine. I had next to no linear algebra experience. Everything's a mess. It was based entirely on javidx9's tutorial series:
-  https://www.youtube.com/watch?v=ih20l3pJoeU&list=RDCMUC-yuWVUplUJZvieEligKBkA&index=4
-  - Impromptu is a reattempt of what I had desired to build back then.
-- https://stackoverflow.com/questions/4124041/is-opengl-coordinate-system-left-handed-or-right-handed
-  - SO question about OpenGL's coordinate handedness. Impromptu uses only left-handed coordinate systems.
-- https://en.wikipedia.org/wiki/Z-buffering
-  - The Z-culling section explains how the reverse "painter's algorithm" can be used to optimize Z-culling.
-- https://www.khronos.org/opengl/wiki/Depth_Buffer_Precision#Why_is_my_depth_buffer_precision_so_poor.3F and https://developer.nvidia.com/content/depth-precision-visualized
-  - Articles (and remedial suggestions) on depth buffer imprecision. 
-- https://bruop.github.io/frustum_culling/
-  - Article on frustrum culling.
-- https://gabrielgambetta.com/computer-graphics-from-scratch/11-clipping.html
-  - Article on triangle clipping.
-- https://learnwebgl.brown37.net/08_projections/projections_perspective.html#:~:text=A%20perspective%20projection%20defines%20a,parallel%20to%20the%20X%2DY%20plane.
-  - Nice interactive demonstration and derivation of the perspective projection matrix.
-- http://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/
-  - First-person controls.
+In no particular order, here are some online resources I found helpful along the way:
+
+|URL|Description|
+|-|-|
+|https://www.songho.ca/opengl|Detailed (occasionally math-heavy) explanations of OpenGL concepts. |
+|https://learnopengl.com|General overview of OpenGL concepts.|
+|https://www.pbr-book.org/4ed|Although this book is on physically based rendering of images via raytracing, it is very rigorous in it's explanations of coordinate spaces and transformations for 3D rendering in general.|
+|https://computergraphics.stackexchange.com|A forum with expert answers for all things computer graphics.|
+|https://github.com/SeanJxie/3d-engine-from-scratch/tree/main|An old project of mine. I had next to no linear algebra experience. Everything's a mess. Impromptu is a reattempt of what I had desired to build back then.|
+|https://www.youtube.com/watch?v=ih20l3pJoeU|Tutorial I followed for the project above|
+|https://stackoverflow.com/questions/4124041/is-opengl-coordinate-system-left-handed-or-right-handed|SO question about OpenGL's coordinate handedness. Impromptu uses only left-handed coordinate systems.|
+|https://en.wikipedia.org/wiki/Z-buffering|The Z-culling section explains how the reverse "painter's algorithm" can be used to optimize Z-culling.|
+|https://www.khronos.org/opengl/wiki/Depth_Buffer_Precision and https://developer.nvidia.com/content/depth-precision-visualized|OpenGL wiki and Nvidia article on depth buffer imprecision (and suggestions to improve precision).|
+|https://bruop.github.io/frustum_culling/|Article on frustrum culling.|
+|https://gabrielgambetta.com/computer-graphics-from-scratch/11-clipping.html|Article on triangle clipping.|
+|https://learnwebgl.brown37.net/08_projections/projections_perspective.html|Nice interactive demonstration and derivation of the perspective projection matrix.|
+|http://www.opengl-tutorial.org/beginners-tutorials/tutorial-6-keyboard-and-mouse/|First-person controls.|
+|https://www.pbr-book.org/4ed/Geometry_and_Transformations/Applying_Transformations#Normals and https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html and https://stackoverflow.com/questions/13654401/why-transform-normals-with-the-transpose-of-the-inverse-of-the-modelview-matrix|Text on why normals can not be treated as direction vectors when applying transformations.|
+|https://www.khronos.org/opengl/wiki/Rendering_Pipeline_Overview|OpenGL wiki on the rendering pipeline. Impromptu aims to perform small vital stages of the pipeline.|
+|https://en.wikipedia.org/wiki/Back-face_culling|Rundown on back-face culling|

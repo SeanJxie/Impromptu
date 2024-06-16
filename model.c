@@ -11,7 +11,7 @@ struct Model *Model_create(struct Tri *mesh, int num_tris, float x, float y, flo
     struct Matrix4 scale;
     Matrix4_scale(sx, sy, sz, &scale);
 
-    // Model matrix is, in order, scale, rotate, translate.
+    // Model matrix is, in order: scale, rotate, translate.
     struct Matrix4 scale_then_rotate;
     Matrix4_mul(&rotate, &scale, &scale_then_rotate);
     Matrix4_mul(&translate, &scale_then_rotate, &out->model_to_world);
@@ -31,7 +31,6 @@ struct Model *Model_from_obj(const char *file_name, float x, float y, float z, f
     char line[MAX_LINE_LEN_OBJ];
     FILE *fp = fopen(file_name, "r");
 
-    
     // This loop counts vertices and faces.
     while (fgets(line, MAX_LINE_LEN_OBJ, fp)) {
         if (line[0] == 'v') {
@@ -43,9 +42,8 @@ struct Model *Model_from_obj(const char *file_name, float x, float y, float z, f
 
     fseek(fp, 0, SEEK_SET);
     
-    
     int line_len;
-    char float_str[16], int_str[16];
+    char float_str[32], int_str[32];
     int vi1, vi2, vi3;
     float f;
     int n;
@@ -53,13 +51,13 @@ struct Model *Model_from_obj(const char *file_name, float x, float y, float z, f
     int d = 0;
     struct Vector3 v;
 
-    // Storage vectors.
+    // Storage.
     struct Vector3 *vertices = malloc(sizeof(struct Vector3) * num_vertices);
     int vertices_i = 0;
     struct Tri *tris = malloc(sizeof(struct Tri) * num_tris);
     int tris_i = 0;
 
-    // This loop loads vertices and faces.
+    // This loop loads vertices and faces to storage.
     while (fgets(line, MAX_LINE_LEN_OBJ, fp)) {
         line_len = strlen(line);
         if (line[0] == 'v') {
@@ -87,7 +85,6 @@ struct Model *Model_from_obj(const char *file_name, float x, float y, float z, f
             d = 0;
             vertices[vertices_i++] = v;
         } else if (line[0] == 'f') {
-            
             for (int i = 2; i < line_len; ++i) {
                 if (line[i] == ' ' || line[i] == '\n') {
                     int_str[j] = '\0';
@@ -109,7 +106,7 @@ struct Model *Model_from_obj(const char *file_name, float x, float y, float z, f
                 }
             }
             d = 0;
-            tris[tris_i++] = (struct Tri){vertices[vi1], vertices[vi2], vertices[vi3], 255, 255, 255};
+            tris[tris_i++] = Tri_create(vertices[vi1], vertices[vi2], vertices[vi3], rand() % 256, rand() % 256, rand() % 256);
         }
     }
 
@@ -153,102 +150,102 @@ struct Model *Model_unit_cube() {
     struct Tri *mesh = malloc(sizeof(struct Tri) * num_tris);
     
     // These are in model-local coordinates.
-    mesh[0] = (struct Tri){
+    mesh[0] = Tri_create(
         Vector3_create_point(0, 0, 0), // Vertex 1.
         Vector3_create_point(0, 0, 1), // Vertex 2.
         Vector3_create_point(1, 0, 0), // Vertex 3.
         rand() % 256,                  // r
         rand() % 256,                  // g
         rand() % 256                   // b
-    };
-    mesh[1] = (struct Tri){                            
+    );
+    mesh[1] = Tri_create(                            
         Vector3_create_point(1, 0, 1), 
         Vector3_create_point(1, 0, 0), 
         Vector3_create_point(0, 0, 1),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[2] = (struct Tri){                            
+    );
+    mesh[2] = Tri_create(                            
         Vector3_create_point(0, 1, 0), 
         Vector3_create_point(0, 1, 1), 
         Vector3_create_point(1, 1, 0),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[3] = (struct Tri){                            
+    );
+    mesh[3] = Tri_create(                            
         Vector3_create_point(1, 1, 1), 
         Vector3_create_point(1, 1, 0), 
         Vector3_create_point(0, 1, 1),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[4] = (struct Tri){                           
+    );
+    mesh[4] = Tri_create(                           
         Vector3_create_point(0, 0, 1), 
         Vector3_create_point(0, 1, 1), 
         Vector3_create_point(1, 0, 1),
         rand() % 256,
         rand() % 256,
         rand() % 256
-    };
-    mesh[5] = (struct Tri){                            
+    );
+    mesh[5] = Tri_create(                            
         Vector3_create_point(1, 1, 1), 
         Vector3_create_point(1, 0, 1), 
         Vector3_create_point(0, 1, 1),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[6] = (struct Tri){                            
+    );
+    mesh[6] = Tri_create(                            
         Vector3_create_point(0, 0, 0), 
         Vector3_create_point(0, 1, 0), 
         Vector3_create_point(1, 0, 0),
         rand() % 256,
         rand() % 256,
         rand() % 256
-    };
-    mesh[7] = (struct Tri){                            
+    );
+    mesh[7] = Tri_create(                            
         Vector3_create_point(1, 1, 0), 
         Vector3_create_point(1, 0, 0), 
         Vector3_create_point(0, 1, 0),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[8] = (struct Tri){                            
+    );
+    mesh[8] = Tri_create(                            
         Vector3_create_point(0, 0, 0), 
         Vector3_create_point(0, 1, 0), 
         Vector3_create_point(0, 0, 1),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[9] = (struct Tri){                            
+    );
+    mesh[9] = Tri_create(                            
         Vector3_create_point(0, 1, 1), 
         Vector3_create_point(0, 0, 1), 
         Vector3_create_point(0, 1, 0),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[10] = (struct Tri){                            
+    );
+    mesh[10] = Tri_create(                            
         Vector3_create_point(1, 0, 0), 
         Vector3_create_point(1, 1, 0), 
         Vector3_create_point(1, 0, 1),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
-    mesh[11] = (struct Tri){                            
+    );
+    mesh[11] = Tri_create(                            
         Vector3_create_point(1, 1, 1), 
         Vector3_create_point(1, 0, 1), 
         Vector3_create_point(1, 1, 0),
         rand() % 256,
         rand() % 256,
         rand() % 256  
-    };
+    );
 
     // Make center of cube (0, 0, 0).
     struct Vector3 shift = Vector3_create_direction(-0.5, -0.5, -0.5);
@@ -272,14 +269,14 @@ struct Model *Model_unit_triangle() {
 
     struct Tri *mesh = malloc(sizeof(struct Tri) * num_tris);
     
-    mesh[0] = (struct Tri){
+    mesh[0] = Tri_create(
         Vector3_create_point(0, 0, 0), 
         Vector3_create_point(0, 1, 0), 
         Vector3_create_point(1, 0, 0), 
         rand() % 256,                  
         rand() % 256,                  
         rand() % 256                   
-    };
+    );
     
     return Model_create(
         mesh,
@@ -295,22 +292,23 @@ struct Model *Model_unit_square() {
 
     struct Tri *mesh = malloc(sizeof(struct Tri) * num_tris);
     
-    mesh[0] = (struct Tri){
+    // CCW winding order
+    mesh[0] = Tri_create(
         Vector3_create_point(0, 0, 0), 
-        Vector3_create_point(0, 1, 0), 
         Vector3_create_point(1, 0, 0), 
+        Vector3_create_point(0, 1, 0), 
         rand() % 256,                  
         rand() % 256,                  
         rand() % 256                   
-    };
-    mesh[1] = (struct Tri){
+    );
+    mesh[1] = Tri_create(
         Vector3_create_point(1, 1, 0), 
+        Vector3_create_point(0, 1, 0),
         Vector3_create_point(1, 0, 0), 
-        Vector3_create_point(0, 1, 0), 
         rand() % 256,                  
         rand() % 256,                  
         rand() % 256                   
-    };
+    );
     
 
     return Model_create(

@@ -22,7 +22,7 @@ struct Model {
 
 // We move Model instances by heap pointer.
 
-#define MAX_LINE_LEN_OBJ 64
+#define MAX_LINE_LEN_OBJ 128
 
 struct Model *Model_create(struct Tri *mesh, int num_tris, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz);
 struct Model *Model_from_obj(const char *file_name, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz);

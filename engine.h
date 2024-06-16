@@ -8,8 +8,7 @@
 
 #include "model.h"
 #include "vector3.h"
-#include "matrix4.h"
-#include "plane.h"
+#include "transform.h"
 
 struct Engine {
     SDL_Window   *window;
@@ -32,21 +31,26 @@ struct Engine {
     // Controls.
     float move_speed;
     float look_speed;
+
+    // Render options.
+    int raster_wireframe;
+    int backface_culling;
+    int show_normals;
 };
 
 // We move Engines instances with heap pointers.
 
-struct Engine       *Engine_create(int window_width, int window_height);
-void                 Engine_destroy(struct Engine *e);
+struct Engine *Engine_create(int window_width, int window_height);
+void           Engine_destroy(struct Engine *e);
 
 // Raster.
-inline void          Engine_set_pixel(struct Engine *e, int x, int y, int r, int g, int b);
-inline void          Engine_bresenham(struct Engine *e, int x1, int y1, int x2, int y2, int r, int g, int b);
-inline void          Engine_draw_tri_wireframe(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b);
+inline void    Engine_set_pixel(struct Engine *e, int x, int y, int r, int g, int b);
+inline void    Engine_set_depth(struct Engine *e, int x, int y, float depth);
+inline float   Engine_get_depth(struct Engine *e, int x, int y);
+inline void    Engine_bresenham(struct Engine *e, int x1, int y1, int x2, int y2, int r, int g, int b);
+inline void    Engine_raster_tri_wireframe(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b);
+inline void    Engine_raster_tri(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b);
 
-// Geometric transformation pipline.
-inline void          Engine_mvp(const struct Tri *mesh, int num_tris, const struct Matrix4 *mvp, struct Tri *out_mesh_clip);
-
-void                 Engine_run(struct Engine *e);
+void           Engine_run(struct Engine *e);
 
 #endif

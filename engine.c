@@ -1,15 +1,5 @@
 #include "engine.h"
 
-/*
-
-TODO: Clipping
-      Backface culling
-      Depth check (filling and using depth buffer)
-      Put raster function in their own raster.c/.h
-
-      Test Model-View-Projection (MVP) matrix performance.
-*/
-
 struct Engine *Engine_create(int window_width, int window_height) {
     printf("Engine_create: Initializing engine.\n");
 
@@ -33,8 +23,6 @@ struct Engine *Engine_create(int window_width, int window_height) {
     );
     e->renderer = SDL_CreateRenderer(e->window, -1, SDL_RENDERER_ACCELERATED);
     
-    //SDL_RenderSetLogicalSize(e->renderer, 100, 100);
-
     // Frame data.
     e->frame_texture = SDL_CreateTexture(
         e->renderer, 
@@ -45,7 +33,6 @@ struct Engine *Engine_create(int window_width, int window_height) {
     );
 
     // Initialize frame buffer (comprised of a color and depth buffer in this case).
-
     e->color_buffer_size = sizeof(unsigned char) * window_width * window_height * 4;
     e->depth_buffer_size = sizeof(float) * window_width * window_height;
 
@@ -53,11 +40,20 @@ struct Engine *Engine_create(int window_width, int window_height) {
     e->depth_buffer = malloc(e->depth_buffer_size);
 
     memset(e->color_buffer, 0, e->color_buffer_size);
-    memset(e->depth_buffer, 0, e->depth_buffer_size);
+    // memset float arary.
+    for (int i = 0; i < window_width * window_height; ++i) {
+        e->depth_buffer[i] = -1.0;
+    }
 
+    // Controls.
     e->move_speed = 0.01;
-    e->look_speed = 0.0002;
+    e->look_speed = 0.0001;
 
+    // Render options.
+    e->raster_wireframe = 0;
+    e->backface_culling = 1;
+    e->show_normals     = 1;
+    
     return e;
 }
 
@@ -75,15 +71,20 @@ void Engine_destroy(struct Engine *e) {
 }
 
 inline void Engine_set_pixel(struct Engine *e, int x, int y, int r, int g, int b) {
-    // Ensure a valid color buffer index.
-    if (0 <= x && x < e->window_width && 0 <= y && y < e->window_height) {
-        int color_offset = (e->window_width * y * 4) + x * 4;
+    // TODO: Not safe. Ensure a valid buffer index.
+    int offset = (e->window_width * y * 4) + x * 4;
+    e->color_buffer[offset + 0] = r;
+    e->color_buffer[offset + 1] = g;
+    e->color_buffer[offset + 2] = b;
+    e->color_buffer[offset + 3] = 255;
+}
 
-        e->color_buffer[color_offset + 0] = r;
-        e->color_buffer[color_offset + 1] = g;
-        e->color_buffer[color_offset + 2] = b;
-        e->color_buffer[color_offset + 3] = SDL_ALPHA_OPAQUE;
-    }
+inline void Engine_set_depth(struct Engine *e, int x, int y, float depth) {
+    e->depth_buffer[(e->window_width * y) + x] = depth;
+}
+
+inline float Engine_get_depth(struct Engine *e, int x, int y) {
+    return e->depth_buffer[(e->window_width * y) + x];
 }
 
 inline void Engine_bresenham(struct Engine *e, int x1, int y1, int x2, int y2, int r, int g, int b) {
@@ -122,62 +123,96 @@ inline void Engine_bresenham(struct Engine *e, int x1, int y1, int x2, int y2, i
     int e_ = 0;
 
     while (x <= x2) {
-        if (steep) {
-            Engine_set_pixel(e, y, x, r, g, b);
-        } else {
-            Engine_set_pixel(e, x, y, r, g, b);
-        }
+        if (0 <= x && x < e->window_width && 0 <= y && y < e->window_height) {
+            if (steep) {
+                Engine_set_pixel(e, y, x, r, g, b);
+            } else {
+                Engine_set_pixel(e, x, y, r, g, b);
+            }
 
-        if ((e_ + dy) << 1 < dx) {
-            e_ = e_ + dy;
-        } else {
-            y += inc;
-            e_ = e_ + dy - dx;
+            if ((e_ + dy) << 1 < dx) {
+                e_ = e_ + dy;
+            } else {
+                y += inc;
+                e_ = e_ + dy - dx;
+            }
+            ++x;
         }
-        
-        ++x;
     }
 }
 
-inline void Engine_draw_tri_wireframe(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b) {
+inline void Engine_raster_tri_wireframe(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b) {
     Engine_bresenham(e, v1.x, v1.y, v2.x, v2.y, r, g, b);
     Engine_bresenham(e, v2.x, v2.y, v3.x, v3.y, r, g, b);
     Engine_bresenham(e, v3.x, v3.y, v1.x, v1.y, r, g, b);
 }
 
+inline float _edge(float x1, float y1, float x2, float y2, float x3, float y3) {
+    return (x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1);
+}
 
-// Outputs the model in clip space.
-inline void Engine_mvp(const struct Tri *mesh, int num_tris, const struct Matrix4 *mvp, struct Tri *out) {
-    // Mesh comes in model-local coordiantes.
-    struct Tri tri;
+inline void Engine_raster_tri(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b) {
+    float x1 = v1.x;
+    float y1 = v1.y;
 
-    for (int i = 0; i < num_tris; ++i) {
-        tri = mesh[i];
-        out[i].p1 = Vector3_mul_Matrix4(tri.p1, mvp);
-        out[i].p2 = Vector3_mul_Matrix4(tri.p2, mvp);
-        out[i].p3 = Vector3_mul_Matrix4(tri.p3, mvp);
+    float x2 = v2.x;
+    float y2 = v2.y;
+
+    float x3 = v3.x;
+    float y3 = v3.y;
+    
+    // Calculate equation of plane in which the triangle lies for depth comparison.
+    struct Vector3 plane_normal = Vector3_cross(Vector3_sub(v2, v1), Vector3_sub(v3, v1));
+
+    float a  = plane_normal.x;
+    float b_ = plane_normal.y;
+    float c  = plane_normal.z;
+    float d  = -(a * x1 + b_ * y1 + c * v1.z);
+
+    // Evaluate for points within bounding box of triangle.
+    float bb_min_x = MAX(MIN(MIN(x1, x2), x3), 0);
+    float bb_max_x = MIN(MAX(MAX(x1, x2), x3), e->window_width);
+    float bb_min_y = MAX(MIN(MIN(y1, y2), y3), 0);
+    float bb_max_y = MIN(MAX(MAX(y1, y2), y3), e->window_height);
+    
+    float px, py;
+    float z;
+    for (int y = bb_min_y; y < bb_max_y; ++y) {
+        for (int x = bb_min_x; x < bb_max_x; ++x) {
+            px = x + 0.5;
+            py = y + 0.5;
+            if (_edge(x2, y2, x3, y3, px, py) >= 0 && 
+                _edge(x3, y3, x1, y1, px, py) >= 0 && 
+                _edge(x1, y1, x2, y2, px, py) >= 0) 
+            {
+                z = (-d - a * x - b_ * y) / c;
+                float depth = e->depth_buffer[(e->window_width * y) + x];
+                if (z < depth || depth == -1) {
+                    //Engine_set_pixel(e, x, y, z * 255, z * 255, z * 255);
+                    Engine_set_pixel(e, x, y, r, g, b);
+                    Engine_set_depth(e, x, y, z);
+                }
+            }
+        }
     }
-}    
+}
 
 void Engine_run(struct Engine *e) {
     printf("Engine_run: running engine.\n");
 
-    // In general, we use left-handed coordinate systems.
-    // That is, +x is leftwards.
-    // Also,    +y is downwards.
-    // Also,    +z is forwards.
-
     // Models.
     struct Model *model = Model_from_obj(
-        "models/cow.obj", 
-        0, 0, 10, 
-        180, 0, 0, 
+        "models/suzanne.obj", 
+        0, 0, 5, 
+        0, 0, 0, 
         1, 1, 1
     );
+    //struct Model *model = Model_unit_cube();
+    printf("Triangle count = %d\n", model->num_tris);
 
     // Transformations.
     struct Matrix4 projection;
-    Matrix4_perspective(90, e->aspect_ratio, 2, 20, &projection);
+    Matrix4_perspective(90, e->aspect_ratio, 1, 100, &projection);
 
     struct Matrix4 view;
     struct Vector3 camera_pos = Vector3_create_point(0, 0, 0);
@@ -188,23 +223,8 @@ void Engine_run(struct Engine *e) {
         &view
     );
 
-    struct Matrix4 model_view;
-    struct Matrix4 model_view_projection;
-
     struct Matrix4 viewport;
     Matrix4_viewport(e->window_width, e->window_height, &viewport);
-
-    // Intermediate Tri buffers.
-
-    // Tris in here will be in clip space. Same number of Tris as the model.
-    struct Tri *clip_space_mesh = malloc(sizeof(struct Tri) * model->num_tris);
-
-    // Tris in here will be in clip space. Some the number of Tris will change depending on
-    // culling and clipping. This array is dynamic.
-    //struct Tri *clipped_mesh = malloc(sizeof(struct Tri) * model->num_tris);
-
-    // Tris in here will undergo perspective divide and finally rasterization.
-    //struct Tri *raster_mesh = malloc(sizeof(struct Tri) * model->num_tris);
 
     // Timing.
     Uint64 frame_start = 0;
@@ -332,6 +352,8 @@ void Engine_run(struct Engine *e) {
             camera_pos     = Vector3_add(camera_pos, move_direction);
         } 
 
+        Model_rotate(model, 0, dt * 0.01, 0);
+
         // Recompute view matrix.
         Matrix4_look_at(
             camera_pos, 
@@ -340,61 +362,39 @@ void Engine_run(struct Engine *e) {
             &view
         );
 
-        // Model manipulation.
-        //Model_rotate(model, 0, 0.05 * dt, 0);
-
-        // Construct and apply the mvp matrix.
-        Matrix4_mul(&view, &model->model_to_world, &model_view);
-        Matrix4_mul(&projection, &model_view, &model_view_projection);
-
-        Engine_mvp(model->mesh, model->num_tris, &model_view_projection, clip_space_mesh);
-
         // Clear frame.
         memset(e->color_buffer, 20, e->color_buffer_size);
+        for (int i = 0; i < e->window_width * e->window_height; ++i) {
+            e->depth_buffer[i] = -1.0;
+        }
 
         // Draw the object.
         for (int i = 0; i < model->num_tris; ++i) {
-            struct Tri t = clip_space_mesh[i]; // t is a copy.
+            struct Tri t = model->mesh[i]; // t is a copy.
             struct Vector3 vert1 = t.p1;
             struct Vector3 vert2 = t.p2;
             struct Vector3 vert3 = t.p3;
-            
-            // // --- MODEL-LOCAL SPACE ----
 
-            // // Apply the model matrix to convert the local Tri vertices to world coordinates.
-            // vert1 = Vector3_mul_Matrix4(vert1, &model->model_to_world);
-            // vert2 = Vector3_mul_Matrix4(vert2, &model->model_to_world);
-            // vert3 = Vector3_mul_Matrix4(vert3, &model->model_to_world);
+            // Apply Model-View-Projection (MVP) to the three vertices and normal.            
+            vert1 = Matrix4_vmul(&model->model_to_world, vert1);
+            vert2 = Matrix4_vmul(&model->model_to_world, vert2);
+            vert3 = Matrix4_vmul(&model->model_to_world, vert3);
 
-            // // --- WORLD SPACE ----
+            struct Vector3 plane_normal = Vector3_cross(Vector3_sub(vert2, vert1), Vector3_sub(vert3, vert1));
+            struct Vector3 cam_ray = Vector3_sub(vert1, camera_pos);
 
-            // // Compute and apply view matrix.
-            // // TODO: recompute only when view has changed.
-            
+            // If face isn't facing camera, don't proceed (back-face culling).
+            if (Vector3_dot(plane_normal, cam_ray) >= 0) {
+                continue;
+            }
 
-            // vert1 = Vector3_mul_Matrix4(vert1, &view);
-            // vert2 = Vector3_mul_Matrix4(vert2, &view);
-            // vert3 = Vector3_mul_Matrix4(vert3, &view);
+            vert1 = Matrix4_vmul(&view, vert1);
+            vert2 = Matrix4_vmul(&view, vert2);
+            vert3 = Matrix4_vmul(&view, vert3);
 
-            // // --- CAMERA SPACE ----
-
-            // // Apply perspective projection matrix.
-            // vert1 = Vector3_mul_Matrix4(vert1, &persp);
-            // vert2 = Vector3_mul_Matrix4(vert2, &persp);
-            // vert3 = Vector3_mul_Matrix4(vert3, &persp);
-
-            // --- HOMOGENEOUS CLIP SPACE ----            
-            //
-            // Here, each vertex (x, y, z, w) satisfies
-            //
-            //   -w < x < w, -w < y < w, 0 < z < w
-            //
-            // if and only if the vertex lies within the viewing
-            // frustrum.
-            //
-            // We can cull and clip triangles based on this property
-            // to ease the load on the upcoming perspective division  
-            // and rasterization stages.
+            vert1 = Matrix4_vmul(&projection, vert1);
+            vert2 = Matrix4_vmul(&projection, vert2);
+            vert3 = Matrix4_vmul(&projection, vert3);
 
             // -- CULL --
             // 
@@ -430,8 +430,10 @@ void Engine_run(struct Engine *e) {
             }
 
             // Entire triangle is out near.
-            if (vert1.z < 0 && 
-                vert2.z < 0 && 
+            // Temporary. Cull the triangle even
+            // if only one vertex is out near.
+            if (vert1.z < 0 || 
+                vert2.z < 0 || 
                 vert3.z < 0) {
                 continue;
             }
@@ -456,14 +458,14 @@ void Engine_run(struct Engine *e) {
             // we need to do clipping.
 
             // One vertex out near.
-
+            // TODO: Important for models with large polygons.
             // if ((vert1.z < 0 && vert2.z >= 0 && vert3.z >= 0) || 
             //     (vert2.z < 0 && vert1.z >= 0 && vert3.z >= 0) ||
             //     (vert3.z < 0 && vert1.z >= 0 && vert2.z >= 0)) {
 
                 
             // }
-
+            
             vert1 = Vector3_smul(vert1, 1 / vert1.w);
             vert2 = Vector3_smul(vert2, 1 / vert2.w);
             vert3 = Vector3_smul(vert3, 1 / vert3.w);
@@ -471,20 +473,23 @@ void Engine_run(struct Engine *e) {
             // --- NDC (Normalized Device Coordinate) SPACE ----
 
             // Apply viewport transform to obtain screen coordinates.
-            vert1 = Vector3_mul_Matrix4(vert1, &viewport);
-            vert2 = Vector3_mul_Matrix4(vert2, &viewport);
-            vert3 = Vector3_mul_Matrix4(vert3, &viewport);
+            vert1 = Matrix4_vmul(&viewport, vert1);
+            vert2 = Matrix4_vmul(&viewport, vert2);
+            vert3 = Matrix4_vmul(&viewport, vert3);
 
             // --- SCREEN SPACE ----
-
             // Perform rasterization of triangle.
-            Engine_draw_tri_wireframe(e, vert1, vert2, vert3, 255, 250, 250);
+            if (e->raster_wireframe) {
+                Engine_raster_tri_wireframe(e, vert1, vert2, vert3, 255, 255, 255);
+            } else {
+                Engine_raster_tri(e, vert1, vert2, vert3, t.r, t.g, t.b);
+            }            
         }
 
         // Copy pixels to texture.
-        // SDL_UpdateTexture(e->frame_texture, NULL, e->frame_pixels, e->window_width * 4);
+        //SDL_UpdateTexture(e->frame_texture, NULL, e->color_buffer, e->window_width * 4);
         unsigned char *locked_pixels;
-        int pitch; // Dummy variable.
+        int pitch; // Dummy.
         SDL_LockTexture(e->frame_texture, NULL, (void**)&locked_pixels, &pitch);
         memcpy(locked_pixels, e->color_buffer, e->color_buffer_size);
         SDL_UnlockTexture(e->frame_texture);
@@ -498,5 +503,4 @@ void Engine_run(struct Engine *e) {
 
     // TEMPORARY.
     Model_destroy(model);
-    free(clip_space_mesh);
 }

@@ -1,6 +1,7 @@
 #include "matrix4.h"
 
-// The code convention we adopt for the following implementations is "psychopathic".
+// For next to no reason, the code convention we adopt for the following 
+// implementations is: "What's an array? What's a loop?"
 
 inline void Matrix4_add(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out) {
     out->x00 = a->x00 + b->x00;
@@ -19,6 +20,25 @@ inline void Matrix4_add(const struct Matrix4 *a, const struct Matrix4 *b, struct
     out->x31 = a->x31 + b->x31;
     out->x32 = a->x32 + b->x32;
     out->x33 = a->x33 + b->x33;
+}
+
+inline void Matrix4_sub(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out) {
+    out->x00 = a->x00 - b->x00;
+    out->x01 = a->x01 - b->x01;
+    out->x02 = a->x02 - b->x02;
+    out->x03 = a->x03 - b->x03;
+    out->x10 = a->x10 - b->x10;
+    out->x11 = a->x11 - b->x11;
+    out->x12 = a->x12 - b->x12;
+    out->x13 = a->x13 - b->x13;
+    out->x20 = a->x20 - b->x20;
+    out->x21 = a->x21 - b->x21;
+    out->x22 = a->x22 - b->x22;
+    out->x23 = a->x23 - b->x23;
+    out->x30 = a->x30 - b->x30;
+    out->x31 = a->x31 - b->x31;
+    out->x32 = a->x32 - b->x32;
+    out->x33 = a->x33 - b->x33;
 }
 
 inline void Matrix4_mul(const struct Matrix4 *a, const struct Matrix4 *b, struct Matrix4 *out) {
@@ -70,6 +90,168 @@ inline void Matrix4_mul(const struct Matrix4 *a, const struct Matrix4 *b, struct
     out->x31 = a30 * b01 + a31 * b11 + a32 * b21 + a33 * b31;
     out->x32 = a30 * b02 + a31 * b12 + a32 * b22 + a33 * b32;
     out->x33 = a30 * b03 + a31 * b13 + a32 * b23 + a33 * b33;
+}
+
+inline void Matrix4_smul(const struct Matrix4 *a, float s, struct Matrix4 *out) {
+    out->x00 = a->x00 * s;
+    out->x01 = a->x01 * s;
+    out->x02 = a->x02 * s;
+    out->x03 = a->x03 * s;
+    out->x10 = a->x10 * s;
+    out->x11 = a->x11 * s;
+    out->x12 = a->x12 * s;
+    out->x13 = a->x13 * s;
+    out->x20 = a->x20 * s;
+    out->x21 = a->x21 * s;
+    out->x22 = a->x22 * s;
+    out->x23 = a->x23 * s;
+    out->x30 = a->x30 * s;
+    out->x31 = a->x31 * s;
+    out->x32 = a->x32 * s;
+    out->x33 = a->x33 * s;
+}
+
+inline struct Vector3 Matrix4_vmul(const struct Matrix4 *a, struct Vector3 v) {
+    return (struct Vector3) {
+        v.x * a->x00 + v.y * a->x01 + v.z * a->x02 + v.w * a->x03,
+        v.x * a->x10 + v.y * a->x11 + v.z * a->x12 + v.w * a->x13,
+        v.x * a->x20 + v.y * a->x21 + v.z * a->x22 + v.w * a->x23,
+        v.x * a->x30 + v.y * a->x31 + v.z * a->x32 + v.w * a->x33,
+    };
+}
+
+inline void Matrix4_transpose(const struct Matrix4 *a, struct Matrix4 *out) {
+    out->x00 = a->x00;
+    out->x01 = a->x10;
+    out->x02 = a->x20;
+    out->x03 = a->x30;
+    out->x10 = a->x01;
+    out->x11 = a->x11;
+    out->x12 = a->x21;
+    out->x13 = a->x31;
+    out->x20 = a->x02;
+    out->x21 = a->x12;
+    out->x22 = a->x22;
+    out->x23 = a->x32;
+    out->x30 = a->x03;
+    out->x31 = a->x13;
+    out->x32 = a->x23;
+    out->x33 = a->x33;
+}
+
+inline float Matrix4_tr(const struct Matrix4 *a) {
+    return a->x00 + a->x11 + a->x22 + a->x33;
+}
+
+float Matrix4_det(const struct Matrix4 *m) {
+    // We compute, arbitrarily, along the 0th row.
+
+    // For 3 x 3 matrix first minors.
+    float a = m->x11;
+    float b = m->x12;
+    float c = m->x13;
+    float d = m->x21;
+    float e = m->x22;
+    float f = m->x23;
+    float g = m->x31;
+    float h = m->x32;
+    float i = m->x33;
+
+    float det00 = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+
+    a = m->x10;
+    b = m->x12;
+    c = m->x13;
+    d = m->x20;
+    e = m->x22;
+    f = m->x23;
+    g = m->x30;
+    h = m->x32;
+    i = m->x33;
+
+    float det01 = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+
+    a = m->x10;
+    b = m->x11;
+    c = m->x13;
+    d = m->x20;
+    e = m->x21;
+    f = m->x23;
+    g = m->x30;
+    h = m->x31;
+    i = m->x33;
+
+    float det02 = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+
+    a = m->x10;
+    b = m->x11;
+    c = m->x12;
+    d = m->x20;
+    e = m->x21;
+    f = m->x22;
+    g = m->x30;
+    h = m->x31;
+    i = m->x32;
+
+    float det03 = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+
+    return m->x00 * det00 - m->x01 * det01 + m->x02 * det02 - m->x03 * det03;
+}               
+
+inline void Matrix4_inverse(const struct Matrix4 *a, struct Matrix4 *out) {
+    // https://en.wikipedia.org/wiki/Invertible_matrix#Analytic_solution
+    // Cayley–Hamilton method.
+
+    struct Matrix4 a2;
+    struct Matrix4 a3;
+    
+    Matrix4_mul(a, a, &a2);
+    Matrix4_mul(&a2, a, &a3);
+
+    float tr_a      = Matrix4_tr(a);
+    float tr_a2     = Matrix4_tr(&a2);
+    float tr_a3     = Matrix4_tr(&a3);
+    float inv_det_a = 1 / Matrix4_det(a);
+
+    struct Matrix4 term1;
+    Matrix4_identity(&term1);
+    Matrix4_smul(&term1, (tr_a * tr_a * tr_a - 3 * tr_a * tr_a2 + 2 * tr_a3) / 6, &term1);
+
+    struct Matrix4 term2;
+    Matrix4_copy(a, &term2);
+    Matrix4_smul(&term2, (tr_a * tr_a - tr_a2) / 2, &term2);
+
+    struct Matrix4 term3;
+    Matrix4_copy(&a2, &term3);
+    Matrix4_smul(&term3, tr_a, &term3);
+
+    struct Matrix4 term4;
+    Matrix4_copy(&a3, &term4);
+
+    Matrix4_copy(&term1, out);
+    Matrix4_sub(out, &term2, out);
+    Matrix4_add(out, &term3, out);
+    Matrix4_sub(out, &term4, out);
+    Matrix4_smul(out, inv_det_a, out);
+}
+
+inline void Matrix4_copy(const struct Matrix4 *a, struct Matrix4 *out) {
+    out->x00 = a->x00;
+    out->x01 = a->x01;
+    out->x02 = a->x02;
+    out->x03 = a->x03;
+    out->x10 = a->x10;
+    out->x11 = a->x11;
+    out->x12 = a->x12;
+    out->x13 = a->x13;
+    out->x20 = a->x20;
+    out->x21 = a->x21;
+    out->x22 = a->x22;
+    out->x23 = a->x23;
+    out->x30 = a->x30;
+    out->x31 = a->x31;
+    out->x32 = a->x32;
+    out->x33 = a->x33;
 }
 
 void Matrix4_zero(struct Matrix4 *out) {
@@ -195,9 +377,7 @@ inline void Matrix4_look_at(struct Vector3 eye, struct Vector3 target, struct Ve
     struct Vector3 new_up  = Vector3_cross(forward, right);
 
     // Invert the camera to world transformation to get the world to camera transformation
-    // called the view matrix. 
-    // The inverse is:
-
+    // called the view matrix. We hard-code the inverse instead of calling Matrix4_inverse.
     out->x00 = right.x;
     out->x01 = right.y;
     out->x02 = right.z;
@@ -229,7 +409,7 @@ void Matrix4_viewport(int window_width, int window_height, struct Matrix4 *out) 
 }
 
 inline void Matrix4_print(const struct Matrix4 *a) {
-    printf("[%f %f %f %f\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f]\n", 
+    printf("[%f %f %f %f\n %f %f %f %f\n %f %f %f %f\n %f %f %f %f]", 
         a->x00, a->x01, a->x02, a->x03,
         a->x10, a->x11, a->x12, a->x13,
         a->x20, a->x21, a->x22, a->x23,
