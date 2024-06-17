@@ -2,19 +2,24 @@
 
 This is my personal CPU-based 3D graphics engine that implements a minimal 3D graphics API. The intent of this project is to give me a better understanding of what implementations of graphics APIs such as OpenGL, Vulkan, and Direct3D do under the hood.
 
-The only required external library is [SDL2](https://github.com/libsdl-org/SDL) (for window and user input management).
+The only required external library is [SDL2](https://github.com/libsdl-org/SDL/releases) (for window and user input management).
 
 By default, Impromptu uses perspective projection with first-person camera controls.
 
 # Building and Running
 
-I build the project with `gcc` on Windows. The build command I use looks something like:
+I build the project with `gcc` on Windows. The build command I use in development looks something like
 
 ```
-gcc main.c engine.c model.c vector3.c matrix4.c -o out.exe -pedantic -Wall -Werror -fgnu89-inline -std=c99 -lmingw32 -I[Path to SDL2/include] -L[Path to SDL2/lib] -lSDL2main -lSDL2 
+gcc -pedantic -Wall -Werror -fgnu89-inline -std=c99 ^
+main.c engine.c model.c vector3.c matrix4.c^
+-I[Path to SDL2 includes] ^
+-L[Path to SDL2 libraries] ^
+-lSDL2 -lSDL2main -lmingw32 ^
+-o impromptu.exe 
 ```
 
-When running the program, make sure `SDL2.dll` is in the same directory as the output executable.
+When running the program, make sure `SDL2.dll` (can be found in the SDL2 link above) is in the same directory as the output executable.
 
 # Resources
 In no particular order, here are some online resources I found helpful along the way:
@@ -37,3 +42,5 @@ In no particular order, here are some online resources I found helpful along the
 |https://www.pbr-book.org/4ed/Geometry_and_Transformations/Applying_Transformations#Normals and https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html and https://stackoverflow.com/questions/13654401/why-transform-normals-with-the-transpose-of-the-inverse-of-the-modelview-matrix|Text on why normals can not be treated as direction vectors when applying transformations.|
 |https://www.khronos.org/opengl/wiki/Rendering_Pipeline_Overview|OpenGL wiki on the rendering pipeline. Impromptu aims to perform small vital stages of the pipeline.|
 |https://en.wikipedia.org/wiki/Back-face_culling|Rundown on back-face culling|
+|https://en.wikipedia.org/wiki/Wavefront_.obj_file|OBJ file reference|
+|https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage.html| A triangle rastization algorithm.|

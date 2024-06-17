@@ -399,7 +399,7 @@ inline void Matrix4_look_at(struct Vector3 eye, struct Vector3 target, struct Ve
     out->x33 = 1;
 }
 
-void Matrix4_viewport(int window_width, int window_height, struct Matrix4 *out) {
+inline void Matrix4_viewport(int window_width, int window_height, struct Matrix4 *out) {
     struct Matrix4 translate;
     Matrix4_translate(1, 1, 0, &translate);
     struct Matrix4 scale;

@@ -22,17 +22,18 @@ struct Model *Model_create(struct Tri *mesh, int num_tris, float x, float y, flo
     return out;
 }
 
+// TODO: Cleanup!
 struct Model *Model_from_obj(const char *file_name, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz) {
     struct Model *out = Model_create(NULL, 0, x, y, z, rx, ry, rz, sx, sy, sz);
 
     int num_vertices = 0;
     int num_tris     = 0;
 
-    char line[MAX_LINE_LEN_OBJ];
+    char line[MAX_LEN_LINE];
     FILE *fp = fopen(file_name, "r");
 
-    // This loop counts vertices and faces.
-    while (fgets(line, MAX_LINE_LEN_OBJ, fp)) {
+    // Count vertices and faces.
+    while (fgets(line, MAX_LEN_LINE, fp)) {
         if (line[0] == 'v') {
             ++num_vertices;
         } else if (line[0] == 'f') {
@@ -42,71 +43,42 @@ struct Model *Model_from_obj(const char *file_name, float x, float y, float z, f
 
     fseek(fp, 0, SEEK_SET);
     
-    int line_len;
-    char float_str[32], int_str[32];
-    int vi1, vi2, vi3;
-    float f;
-    int n;
-    int j = 0;
-    int d = 0;
-    struct Vector3 v;
-
     // Storage.
     struct Vector3 *vertices = malloc(sizeof(struct Vector3) * num_vertices);
-    int vertices_i = 0;
-    struct Tri *tris = malloc(sizeof(struct Tri) * num_tris);
-    int tris_i = 0;
+    struct Tri     *tris     = malloc(sizeof(struct Tri)     * num_tris);
 
-    // This loop loads vertices and faces to storage.
-    while (fgets(line, MAX_LINE_LEN_OBJ, fp)) {
-        line_len = strlen(line);
-        if (line[0] == 'v') {
-            for (int i = 2; i < line_len; ++i) {
-                if (line[i] == ' ' || line[i] == '\n') {
-                    float_str[j] = '\0';
-                    f = atof(float_str);
-                    switch (d++) {
-                    case 0:
-                        v.x = f;
-                        break;
-                    case 1:
-                        v.y = f;
-                        break;
-                    case 2:
-                        v.z = f;
-                        break;
-                    }
-                    j = 0;
-                } else {
-                    float_str[j++] = line[i];
+    int vertices_i = 0;
+    int tris_i     = 0;
+    
+    char s[MAX_NUM_SUBSTR][MAX_LEN_SUBSTR];
+    int  len_s;
+
+    struct Obj_mtl curr_mtl;
+    struct Obj_mtl mtl_lib[MAX_NUM_MTL];
+    int            num_mtl;
+
+    // Load vertices and faces to storage.
+    while (fgets(line, MAX_LEN_LINE, fp)) {
+        split(line, s, &len_s);
+
+        if (strcmp(s[0], "v") == 0) {
+            // struct Vector3 v;
+            // parse_vertex(line, &v);
+            vertices[vertices_i++] = Vector3_create_point(atof(s[1]), atof(s[2]), atof(s[3]));
+        } else if (strcmp(s[0], "f") == 0) {
+            // int i1, i2, i3;
+            // parse_face(line, &i1, &i2, &i3);
+            tris[tris_i++] = Tri_create(vertices[atoi(s[1]) - 1], vertices[atoi(s[2]) - 1], vertices[atoi(s[3]) - 1], 
+                                        curr_mtl.kd.x * 255, curr_mtl.kd.y * 255, curr_mtl.kd.z * 255);
+        } else if (strcmp(s[0], "mtllib") == 0) {
+            // Load mtl library.
+            parse_mtl(s[1], mtl_lib, &num_mtl);
+        } else if (strcmp(s[0], "usemtl") == 0) {
+            for (int i = 0; i < num_mtl; ++i) {
+                if (strcmp(s[1], mtl_lib[i].id) == 0) {
+                    curr_mtl = mtl_lib[i];
                 }
             }
-            v.w = 1;
-            d = 0;
-            vertices[vertices_i++] = v;
-        } else if (line[0] == 'f') {
-            for (int i = 2; i < line_len; ++i) {
-                if (line[i] == ' ' || line[i] == '\n') {
-                    int_str[j] = '\0';
-                    n = atoi(int_str) - 1;
-                    switch (d++) {
-                    case 0:
-                        vi1 = n;
-                        break;
-                    case 1:
-                        vi2 = n;
-                        break;
-                    case 2:
-                        vi3 = n;
-                        break;
-                    }
-                    j = 0;
-                } else {
-                    int_str[j++] = line[i];
-                }
-            }
-            d = 0;
-            tris[tris_i++] = Tri_create(vertices[vi1], vertices[vi2], vertices[vi3], rand() % 256, rand() % 256, rand() % 256);
         }
     }
 

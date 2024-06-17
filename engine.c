@@ -10,6 +10,7 @@ struct Engine *Engine_create(int window_width, int window_height) {
 
     e->window_width       = window_width;
     e->window_height      = window_height;
+    e->num_window_pixels  = window_width * window_height;
     e->half_window_width  = window_width * 0.5;
     e->half_window_height = window_height * 0.5;
     e->aspect_ratio       = (float)window_width / window_height;
@@ -41,7 +42,7 @@ struct Engine *Engine_create(int window_width, int window_height) {
 
     memset(e->color_buffer, 0, e->color_buffer_size);
     // memset float arary.
-    for (int i = 0; i < window_width * window_height; ++i) {
+    for (int i = 0; i < e->num_window_pixels; ++i) {
         e->depth_buffer[i] = -1.0;
     }
 
@@ -71,7 +72,6 @@ void Engine_destroy(struct Engine *e) {
 }
 
 inline void Engine_set_pixel(struct Engine *e, int x, int y, int r, int g, int b) {
-    // TODO: Not safe. Ensure a valid buffer index.
     int offset = (e->window_width * y * 4) + x * 4;
     e->color_buffer[offset + 0] = r;
     e->color_buffer[offset + 1] = g;
@@ -123,21 +123,20 @@ inline void Engine_bresenham(struct Engine *e, int x1, int y1, int x2, int y2, i
     int e_ = 0;
 
     while (x <= x2) {
-        if (0 <= x && x < e->window_width && 0 <= y && y < e->window_height) {
-            if (steep) {
-                Engine_set_pixel(e, y, x, r, g, b);
-            } else {
-                Engine_set_pixel(e, x, y, r, g, b);
-            }
-
-            if ((e_ + dy) << 1 < dx) {
-                e_ = e_ + dy;
-            } else {
-                y += inc;
-                e_ = e_ + dy - dx;
-            }
-            ++x;
+        
+        if (steep) {
+            if (0 <= y && y < e->window_width && 0 <= x && x < e->window_height) Engine_set_pixel(e, y, x, r, g, b);
+        } else {
+            if (0 <= x && x < e->window_width && 0 <= y && y < e->window_height) Engine_set_pixel(e, x, y, r, g, b);
         }
+
+        if ((e_ + dy) << 1 < dx) {
+            e_ = e_ + dy;
+        } else {
+            y += inc;
+            e_ = e_ + dy - dx;
+        }
+        ++x;
     }
 }
 
@@ -160,23 +159,25 @@ inline void Engine_raster_tri(struct Engine *e, struct Vector3 v1, struct Vector
 
     float x3 = v3.x;
     float y3 = v3.y;
-    
+
     // Calculate equation of plane in which the triangle lies for depth comparison.
     struct Vector3 plane_normal = Vector3_cross(Vector3_sub(v2, v1), Vector3_sub(v3, v1));
 
     float a  = plane_normal.x;
     float b_ = plane_normal.y;
     float c  = plane_normal.z;
+    float c_inv = 1 / c;
     float d  = -(a * x1 + b_ * y1 + c * v1.z);
 
-    // Evaluate for points within bounding box of triangle.
+    // Finding bounding box of triangle (also considering the bounds of the screen).
     float bb_min_x = MAX(MIN(MIN(x1, x2), x3), 0);
     float bb_max_x = MIN(MAX(MAX(x1, x2), x3), e->window_width);
     float bb_min_y = MAX(MIN(MIN(y1, y2), y3), 0);
     float bb_max_y = MIN(MAX(MAX(y1, y2), y3), e->window_height);
     
     float px, py;
-    float z;
+    float tri_depth;
+    float buffer_depth;
     for (int y = bb_min_y; y < bb_max_y; ++y) {
         for (int x = bb_min_x; x < bb_max_x; ++x) {
             px = x + 0.5;
@@ -185,12 +186,12 @@ inline void Engine_raster_tri(struct Engine *e, struct Vector3 v1, struct Vector
                 _edge(x3, y3, x1, y1, px, py) >= 0 && 
                 _edge(x1, y1, x2, y2, px, py) >= 0) 
             {
-                z = (-d - a * x - b_ * y) / c;
-                float depth = e->depth_buffer[(e->window_width * y) + x];
-                if (z < depth || depth == -1) {
-                    //Engine_set_pixel(e, x, y, z * 255, z * 255, z * 255);
+                tri_depth = (-d - a * x - b_ * y) * c_inv;
+                buffer_depth = e->depth_buffer[(e->window_width * y) + x];
+                if (tri_depth < buffer_depth || buffer_depth == -1) {
+                    //Engine_set_pixel(e, x, y, tri_depth * 255, tri_depth * 255, tri_depth * 255);
                     Engine_set_pixel(e, x, y, r, g, b);
-                    Engine_set_depth(e, x, y, z);
+                    Engine_set_depth(e, x, y, tri_depth);
                 }
             }
         }
@@ -202,17 +203,17 @@ void Engine_run(struct Engine *e) {
 
     // Models.
     struct Model *model = Model_from_obj(
-        "models/suzanne.obj", 
-        0, 0, 5, 
+        "models/casa.obj", 
+        0, 0, 2, 
         0, 0, 0, 
-        1, 1, 1
+        0.1, 0.1, 0.1
     );
     //struct Model *model = Model_unit_cube();
     printf("Triangle count = %d\n", model->num_tris);
 
     // Transformations.
     struct Matrix4 projection;
-    Matrix4_perspective(90, e->aspect_ratio, 1, 100, &projection);
+    Matrix4_perspective(90, e->aspect_ratio, 0.1, 5, &projection);
 
     struct Matrix4 view;
     struct Vector3 camera_pos = Vector3_create_point(0, 0, 0);
@@ -362,9 +363,9 @@ void Engine_run(struct Engine *e) {
             &view
         );
 
-        // Clear frame.
+        // Clear frame buffers.
         memset(e->color_buffer, 20, e->color_buffer_size);
-        for (int i = 0; i < e->window_width * e->window_height; ++i) {
+        for (int i = 0; i < e->num_window_pixels; ++i) {
             e->depth_buffer[i] = -1.0;
         }
 

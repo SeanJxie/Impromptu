@@ -9,6 +9,7 @@
 #include "model.h"
 #include "vector3.h"
 #include "transform.h"
+#include "util.h"
 
 struct Engine {
     SDL_Window   *window;
@@ -17,6 +18,7 @@ struct Engine {
     // Window.
     int   window_width;
     int   window_height;
+    int   num_window_pixels;
     float half_window_width;
     float half_window_height;
     float aspect_ratio;

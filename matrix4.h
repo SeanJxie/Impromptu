@@ -48,7 +48,7 @@ void        Matrix4_scale(float sx, float sy, float sz, struct Matrix4 *out);
 
 void        Matrix4_perspective(float fov, float aspect_ratio, float znear, float zfar, struct Matrix4 *out);
 inline void Matrix4_look_at(struct Vector3 eye, struct Vector3 target, struct Vector3 up, struct Matrix4 *out);
-void        Matrix4_viewport(int window_width, int window_height, struct Matrix4 *out);
+inline void Matrix4_viewport(int window_width, int window_height, struct Matrix4 *out);
 
 // Utility.
 inline void Matrix4_print(const struct Matrix4 *a);
