@@ -1,6 +1,6 @@
 # Impromptu
 
-This is my personal CPU-based 3D graphics engine that implements a minimal 3D graphics API. The intent of this project is to give me a better understanding of what implementations of graphics APIs such as OpenGL, Vulkan, and Direct3D do under the hood.
+This is my personal CPU-based 3D raster grpahics engine that implements a minimal 3D graphics API. The intent of this project is to give me a better understanding of what implementations of graphics APIs such as OpenGL, Vulkan, and Direct3D do under the hood.
 
 The only required external library is [SDL2](https://github.com/libsdl-org/SDL/releases) (for window and user input management).
 
@@ -42,5 +42,9 @@ In no particular order, here are some online resources I found helpful along the
 |https://www.pbr-book.org/4ed/Geometry_and_Transformations/Applying_Transformations#Normals and https://www.scratchapixel.com/lessons/mathematics-physics-for-computer-graphics/geometry/transforming-normals.html and https://stackoverflow.com/questions/13654401/why-transform-normals-with-the-transpose-of-the-inverse-of-the-modelview-matrix|Text on why normals can not be treated as direction vectors when applying transformations.|
 |https://www.khronos.org/opengl/wiki/Rendering_Pipeline_Overview|OpenGL wiki on the rendering pipeline. Impromptu aims to perform small vital stages of the pipeline.|
 |https://en.wikipedia.org/wiki/Back-face_culling|Rundown on back-face culling|
-|https://en.wikipedia.org/wiki/Wavefront_.obj_file|OBJ file reference|
-|https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage.html| A triangle rastization algorithm.|
+|https://paulbourke.net/dataformats/obj/ and https://paulbourke.net/dataformats/mtl/|OBJ and MTL file specs|
+|https://www.scratchapixel.com/lessons/3d-basic-rendering/rasterization-practical-implementation/rasterization-stage.html|A triangle rastization algorithm.|
+|https://docs.safe.com/fme/html/FME-Form-Documentation/FME-ReadersWriters/!FME_Geometry/Texture_Coordinates.htm|Rundown on texture coordinates with some nice references.|
+|https://computergraphics.stackexchange.com/questions/8515/how-is-lighting-done-in-rasterization-based-pipeline|Into question on lighting in in the context of rasterization.|
+|https://en.wikipedia.org/wiki/Computer_graphics_lighting#:~:text=In%20computer%20graphics%2C%20the%20overall,diffuse%2C%20ambient%2C%20and%20specular.|General graphics lighting terminology|
+|https://learnwebgl.brown37.net/09_lights/lights_diffuse.html#diffuse-lighting|This and following chapters provide vertex and fragement shaders implementing diffuse/specular/ambient lighting|

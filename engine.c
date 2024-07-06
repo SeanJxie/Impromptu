@@ -51,7 +51,7 @@ struct Engine *Engine_create(int window_width, int window_height) {
     e->look_speed = 0.0001;
 
     // Render options.
-    e->raster_wireframe = 0;
+    e->wireframe = 0;
     e->backface_culling = 1;
     e->show_normals     = 1;
     
@@ -150,70 +150,28 @@ inline float _edge(float x1, float y1, float x2, float y2, float x3, float y3) {
     return (x3 - x1) * (y2 - y1) - (y3 - y1) * (x2 - x1);
 }
 
-inline void Engine_raster_tri(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b) {
-    float x1 = v1.x;
-    float y1 = v1.y;
-
-    float x2 = v2.x;
-    float y2 = v2.y;
-
-    float x3 = v3.x;
-    float y3 = v3.y;
-
-    // Calculate equation of plane in which the triangle lies for depth comparison.
-    struct Vector3 plane_normal = Vector3_cross(Vector3_sub(v2, v1), Vector3_sub(v3, v1));
-
-    float a  = plane_normal.x;
-    float b_ = plane_normal.y;
-    float c  = plane_normal.z;
-    float c_inv = 1 / c;
-    float d  = -(a * x1 + b_ * y1 + c * v1.z);
-
-    // Finding bounding box of triangle (also considering the bounds of the screen).
-    float bb_min_x = MAX(MIN(MIN(x1, x2), x3), 0);
-    float bb_max_x = MIN(MAX(MAX(x1, x2), x3), e->window_width);
-    float bb_min_y = MAX(MIN(MIN(y1, y2), y3), 0);
-    float bb_max_y = MIN(MAX(MAX(y1, y2), y3), e->window_height);
-    
-    float px, py;
-    float tri_depth;
-    float buffer_depth;
-    for (int y = bb_min_y; y < bb_max_y; ++y) {
-        for (int x = bb_min_x; x < bb_max_x; ++x) {
-            px = x + 0.5;
-            py = y + 0.5;
-            if (_edge(x2, y2, x3, y3, px, py) >= 0 && 
-                _edge(x3, y3, x1, y1, px, py) >= 0 && 
-                _edge(x1, y1, x2, y2, px, py) >= 0) 
-            {
-                tri_depth = (-d - a * x - b_ * y) * c_inv;
-                buffer_depth = e->depth_buffer[(e->window_width * y) + x];
-                if (tri_depth < buffer_depth || buffer_depth == -1) {
-                    //Engine_set_pixel(e, x, y, tri_depth * 255, tri_depth * 255, tri_depth * 255);
-                    Engine_set_pixel(e, x, y, r, g, b);
-                    Engine_set_depth(e, x, y, tri_depth);
-                }
-            }
-        }
-    }
-}
-
 void Engine_run(struct Engine *e) {
     printf("Engine_run: running engine.\n");
 
     // Models.
     struct Model *model = Model_from_obj(
-        "models/casa.obj", 
-        0, 0, 2, 
+        "models/cube.obj", 
         0, 0, 0, 
-        0.1, 0.1, 0.1
+        0, 0, 0, 
+        1, 1, 1
     );
     //struct Model *model = Model_unit_cube();
     printf("Triangle count = %d\n", model->num_tris);
 
+    // Lights.
+    // struct LightSource point_light;
+    // point_light.type  = LIGHT_TYPE_POINT;
+    // point_light.power = 100;
+    // float tmp_light_rotation_angle = 0;
+
     // Transformations.
     struct Matrix4 projection;
-    Matrix4_perspective(90, e->aspect_ratio, 0.1, 5, &projection);
+    Matrix4_perspective(90, e->aspect_ratio, 0.1, 10, &projection);
 
     struct Matrix4 view;
     struct Vector3 camera_pos = Vector3_create_point(0, 0, 0);
@@ -264,45 +222,22 @@ void Engine_run(struct Engine *e) {
         while (SDL_PollEvent(&event)) {
             if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE)) {
                 running = 0;
-                break;
             } else if (event.type == SDL_KEYDOWN) {
-                if (event.key.keysym.sym == SDLK_w) {
-                    w_pressed = 1;
-                } 
-                if (event.key.keysym.sym == SDLK_s) {
-                    s_pressed = 1;
-                } 
-                if (event.key.keysym.sym == SDLK_a) {
-                    a_pressed = 1;
-                } 
-                if (event.key.keysym.sym == SDLK_d) {
-                    d_pressed = 1;
-                } 
-                if (event.key.keysym.sym == SDLK_LSHIFT) {
-                    lshift_pressed = 1;
-                } 
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    space_pressed = 1;
-                }
+                if      (event.key.keysym.sym == SDLK_w)      w_pressed      = 1;
+                else if (event.key.keysym.sym == SDLK_s)      s_pressed      = 1;
+                else if (event.key.keysym.sym == SDLK_a)      a_pressed      = 1;
+                else if (event.key.keysym.sym == SDLK_d)      d_pressed      = 1;
+                else if (event.key.keysym.sym == SDLK_LSHIFT) lshift_pressed = 1;
+                else if (event.key.keysym.sym == SDLK_SPACE)  space_pressed  = 1;
+
+                else if (event.key.keysym.sym == SDLK_r)      e->wireframe   = e->wireframe ? 0 : 1;
             } else if (event.type == SDL_KEYUP) {
-                if (event.key.keysym.sym == SDLK_w) {
-                    w_pressed = 0;
-                } 
-                if (event.key.keysym.sym == SDLK_s) {
-                    s_pressed = 0;
-                } 
-                if (event.key.keysym.sym == SDLK_a) {
-                    a_pressed = 0;
-                } 
-                if (event.key.keysym.sym == SDLK_d) {
-                    d_pressed = 0;
-                } 
-                if (event.key.keysym.sym == SDLK_LSHIFT) {
-                    lshift_pressed = 0;
-                } 
-                if (event.key.keysym.sym == SDLK_SPACE) {
-                    space_pressed = 0;
-                }
+                if      (event.key.keysym.sym == SDLK_w)      w_pressed      = 0;
+                else if (event.key.keysym.sym == SDLK_s)      s_pressed      = 0;
+                else if (event.key.keysym.sym == SDLK_a)      a_pressed      = 0;
+                else if (event.key.keysym.sym == SDLK_d)      d_pressed      = 0;
+                else if (event.key.keysym.sym == SDLK_LSHIFT) lshift_pressed = 0;
+                else if (event.key.keysym.sym == SDLK_SPACE)  space_pressed  = 0;
             }
         }
 
@@ -354,6 +289,7 @@ void Engine_run(struct Engine *e) {
         } 
 
         Model_rotate(model, 0, dt * 0.01, 0);
+        //tmp_light_rotation_angle += dt * 0.001;
 
         // Recompute view matrix.
         Matrix4_look_at(
@@ -364,18 +300,21 @@ void Engine_run(struct Engine *e) {
         );
 
         // Clear frame buffers.
-        memset(e->color_buffer, 20, e->color_buffer_size);
+        memset(e->color_buffer, 0, e->color_buffer_size);
         for (int i = 0; i < e->num_window_pixels; ++i) {
             e->depth_buffer[i] = -1.0;
         }
 
-        // Draw the object.
+        // The following is something like a rendering pipeline. Specifically, the one specified in OpenGL.
         for (int i = 0; i < model->num_tris; ++i) {
-            struct Tri t = model->mesh[i]; // t is a copy.
-            struct Vector3 vert1 = t.p1;
-            struct Vector3 vert2 = t.p2;
-            struct Vector3 vert3 = t.p3;
-
+            struct Tri t = model->mesh[i]; // Copy.
+            int r = t.r;
+            int g = t.g;
+            int b = t.b;
+            struct Vector3 vert1 = t.v0.pos;
+            struct Vector3 vert2 = t.v1.pos;
+            struct Vector3 vert3 = t.v2.pos;
+            
             // Apply Model-View-Projection (MVP) to the three vertices and normal.            
             vert1 = Matrix4_vmul(&model->model_to_world, vert1);
             vert2 = Matrix4_vmul(&model->model_to_world, vert2);
@@ -388,6 +327,23 @@ void Engine_run(struct Engine *e) {
             if (Vector3_dot(plane_normal, cam_ray) >= 0) {
                 continue;
             }
+            
+            // point_light.pos = Vector3_create_point(2 * cos(tmp_light_rotation_angle), 2 * sin(tmp_light_rotation_angle), 0);
+
+            // // Illumniate face if facing light
+            // if (Vector3_dot(plane_normal, Vector3_sub(vert1, point_light.pos)) < 0) {
+
+            //     // Inverse square law.
+            //     float light_intensity = LightSource_get_intensity(point_light, vert1);
+
+            //     r = MIN(t.r + light_intensity * 10, 255);
+            //     g = MIN(t.g + light_intensity * 10, 255);
+            //     b = MIN(t.b + light_intensity * 10, 255);
+
+            //     // r = MIN((r + light_intensity) * t.r, 255);
+            //     // g = MIN((g + light_intensity) * t.g, 255);
+            //     // b = MIN((b + light_intensity) * t.b, 255);
+            // }
 
             vert1 = Matrix4_vmul(&view, vert1);
             vert2 = Matrix4_vmul(&view, vert2);
@@ -397,7 +353,7 @@ void Engine_run(struct Engine *e) {
             vert2 = Matrix4_vmul(&projection, vert2);
             vert3 = Matrix4_vmul(&projection, vert3);
 
-            // -- CULL --
+            // -- CULL IN CLIP SPACE --
             // 
             // If the entire triangle is outside the view frustrum, don't even bother with
             // perspective divide and rasterization.
@@ -431,8 +387,7 @@ void Engine_run(struct Engine *e) {
             }
 
             // Entire triangle is out near.
-            // Temporary. Cull the triangle even
-            // if only one vertex is out near.
+            // Cull the triangle even if only one vertex is out.
             if (vert1.z < 0 || 
                 vert2.z < 0 || 
                 vert3.z < 0) {
@@ -446,32 +401,14 @@ void Engine_run(struct Engine *e) {
                 continue;
             }
 
-            // -- CLIP --
-            //
-            // If the triangle is partially outside the view frustrum, we would still like
-            // to proceed with perspective divide and rasterization, but only after removing
-            // the outside vertices and reconstructing the triangle as one or more triangles.
-            // 
-            // Most important: clip against near plane to avoid division by zero since w is mapped to 
-            // camera space z in the perspective matrix. 
-            //
-            // Under no circumstances do we want a vertex zero or very close to zero. So, on top of the culling, 
-            // we need to do clipping.
+            // --- PERSPECTIVE DIVIDE ---
 
-            // One vertex out near.
-            // TODO: Important for models with large polygons.
-            // if ((vert1.z < 0 && vert2.z >= 0 && vert3.z >= 0) || 
-            //     (vert2.z < 0 && vert1.z >= 0 && vert3.z >= 0) ||
-            //     (vert3.z < 0 && vert1.z >= 0 && vert2.z >= 0)) {
-
-                
-            // }
-            
             vert1 = Vector3_smul(vert1, 1 / vert1.w);
             vert2 = Vector3_smul(vert2, 1 / vert2.w);
             vert3 = Vector3_smul(vert3, 1 / vert3.w);
 
-            // --- NDC (Normalized Device Coordinate) SPACE ----
+
+            // --- NORMALIZED DEVICE COORDINATE SPACE ----
 
             // Apply viewport transform to obtain screen coordinates.
             vert1 = Matrix4_vmul(&viewport, vert1);
@@ -479,12 +416,60 @@ void Engine_run(struct Engine *e) {
             vert3 = Matrix4_vmul(&viewport, vert3);
 
             // --- SCREEN SPACE ----
+
             // Perform rasterization of triangle.
-            if (e->raster_wireframe) {
+            if (e->wireframe) {
                 Engine_raster_tri_wireframe(e, vert1, vert2, vert3, 255, 255, 255);
-            } else {
-                Engine_raster_tri(e, vert1, vert2, vert3, t.r, t.g, t.b);
-            }            
+                continue;
+            }
+
+            // --- RASTERIZE TRIANGLE ---
+            float x1 = vert1.x;
+            float y1 = vert1.y;
+
+            float x2 = vert2.x;
+            float y2 = vert2.y;
+
+            float x3 = vert3.x;
+            float y3 = vert3.y;
+
+            // Calculate equation of plane in which the triangle lies for depth comparison.
+            plane_normal = Vector3_cross(Vector3_sub(vert2, vert1), Vector3_sub(vert3, vert1));
+
+            float a  = plane_normal.x;
+            float b_ = plane_normal.y;
+            float c  = plane_normal.z;
+            float c_inv = 1 / c;
+            float d  = -(a * x1 + b_ * y1 + c * vert1.z);
+
+            // Finding bounding box of triangle (also considering the bounds of the screen).
+            float bb_min_x = MAX(MIN(MIN(x1, x2), x3), 0);
+            float bb_max_x = MIN(MAX(MAX(x1, x2), x3), e->window_width);
+            float bb_min_y = MAX(MIN(MIN(y1, y2), y3), 0);
+            float bb_max_y = MIN(MAX(MAX(y1, y2), y3), e->window_height);
+            
+            float px, py;
+            float z;
+            float buffer_depth;
+            for (int y = bb_min_y; y < bb_max_y; ++y) {
+                for (int x = bb_min_x; x < bb_max_x; ++x) {
+                    px = x + 0.5;
+                    py = y + 0.5;
+                    if (_edge(x2, y2, x3, y3, px, py) >= 0 && 
+                        _edge(x3, y3, x1, y1, px, py) >= 0 && 
+                        _edge(x1, y1, x2, y2, px, py) >= 0) 
+                    {
+                        z = (-d - a * x - b_ * y) * c_inv;
+                        buffer_depth = e->depth_buffer[(e->window_width * y) + x];
+                        if (z < buffer_depth || buffer_depth == -1) {
+                            // The following is something like a fragment shader.
+                            //printf("%d %d %d %d %d\n", x, y, r, g, b);
+                            Engine_set_pixel(e, x, y, r, g, b);
+                            Engine_set_depth(e, x, y, z);
+                        }
+                    }
+                }
+            }
         }
 
         // Copy pixels to texture.

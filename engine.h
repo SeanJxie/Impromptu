@@ -10,6 +10,7 @@
 #include "vector3.h"
 #include "transform.h"
 #include "util.h"
+#include "light.h"
 
 struct Engine {
     SDL_Window   *window;
@@ -35,7 +36,7 @@ struct Engine {
     float look_speed;
 
     // Render options.
-    int raster_wireframe;
+    int wireframe;
     int backface_culling;
     int show_normals;
 };
@@ -51,7 +52,6 @@ inline void    Engine_set_depth(struct Engine *e, int x, int y, float depth);
 inline float   Engine_get_depth(struct Engine *e, int x, int y);
 inline void    Engine_bresenham(struct Engine *e, int x1, int y1, int x2, int y2, int r, int g, int b);
 inline void    Engine_raster_tri_wireframe(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b);
-inline void    Engine_raster_tri(struct Engine *e, struct Vector3 v1, struct Vector3 v2, struct Vector3 v3, int r, int g, int b);
 
 void           Engine_run(struct Engine *e);
 

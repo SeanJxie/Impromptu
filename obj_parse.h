@@ -5,19 +5,24 @@
 #include <string.h>
 
 #include "vector3.h"
+#include "model.h"
 
-#define MAX_LEN_LINE     512 // Length of line in obj and mtl files.
-#define MAX_LEN_SUBSTR   128 // Length of whitespace-delimited substrings in a line.
-#define MAX_NUM_SUBSTR   16  // Number of substrings.
-#define MAX_LEN_MTL_ID   64  // Length of material ID in obj and mtl files.
-#define MAX_NUM_MTL      1024
+// Some useful size constants.
+#define MAX_LL  512  // Max string length of a line in OBJ and MTL files.
+#define MAX_LSS 128  // Max string length of a delimited substring.
+#define MAX_NSS 16   // Max number of delimited substrings.
+#define MAX_LM  64   // Max string length of a material name in OBJ and MTL files.
+#define MAX_NM  1024 // Max number of defined materials.
 
 struct Obj_mtl {
-    char id[MAX_LEN_MTL_ID];
+    char name[MAX_LM];
     struct Vector3 kd;
 };
 
-inline void split(const char *line, char out[MAX_NUM_SUBSTR][MAX_LEN_SUBSTR], int *out_n);
+inline void split_space(const char *line, char out[MAX_NSS][MAX_LSS], int *out_n);
+inline void split_slash(const char *line, char out[MAX_NSS][MAX_LSS], int *out_n);
+
+inline struct Tri *parse_obj(const char *file_name, int *out_n); // Outputs a heap allocated mesh.
 inline void parse_mtl(const char *file_name, struct Obj_mtl *out, int *out_n);
 
 #endif

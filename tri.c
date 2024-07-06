@@ -1,16 +1,16 @@
 #include "tri.h"
 
-struct Tri Tri_create(struct Vector3 p1, struct Vector3 p2, struct Vector3 p3, unsigned char r, unsigned char g, unsigned char b) {
-    struct Vector3 u = Vector3_sub(p2, p1);
-    struct Vector3 v = Vector3_sub(p3, p1);
-    struct Vector3 n = Vector3_normalize(Vector3_cross(u, v));
+// struct Tri Tri_create(struct Vector3 p1, struct Vector3 p2, struct Vector3 p3, unsigned char r, unsigned char g, unsigned char b) {
+//     struct Vector3 u = Vector3_sub(p2, p1);
+//     struct Vector3 v = Vector3_sub(p3, p1);
+//     struct Vector3 n = Vector3_normalize(Vector3_cross(u, v));
 
-    return (struct Tri){
-        p1, p2, p3,
-        n,
-        r, g, b
-    };
-}
+//     return (struct Tri){
+//         p1, p2, p3,
+//         n,
+//         r, g, b
+//     };
+// }
 
 // struct TriList *TriList_create_empty() {
 //     struct TriList *ret = malloc(sizeof(struct TriList));
