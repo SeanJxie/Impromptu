@@ -140,16 +140,21 @@ inline struct Tri *parse_obj(const char *file_name, int *out_n) {
             
                 vref = atoi(slash_split_arr[0]); // Required vertex reference.
                 tmpv.pos = v[vref - 1];
+                tmpv.col.x = rand() % 256;
+                tmpv.col.y = rand() % 256;
+                tmpv.col.z = rand() % 256;
 
                 if (len_slash_split_arr >= 2 && strcmp("", slash_split_arr[1]) != 0) { // Optional texture coordinate reference.
                     vtref = atoi(slash_split_arr[1]);
-                    tmpv.tex_u  = vt[vtref - 1].x;
-                    tmpv.tex_v  = vt[vtref - 1].y;
+                    (void)vtref; // NO-OP.
+                    //tmpv.tex_u  = vt[vtref - 1].x;
+                    //tmpv.tex_v  = vt[vtref - 1].y;
                 } 
 
                 if (len_slash_split_arr == 3 && strcmp("", slash_split_arr[2]) != 0) { // Optional vertex normal reference.
                     vnref = atoi(slash_split_arr[2]);
-                    tmpv.normal = vn[vnref - 1];
+                    (void)vnref; // NO-OP.
+                    //tmpv.normal = vn[vnref - 1];
                 }
 
                 switch (i) {
@@ -158,10 +163,6 @@ inline struct Tri *parse_obj(const char *file_name, int *out_n) {
                     case 3: tmpt.v2 = tmpv; break;
                 } 
             }
-
-            tmpt.r = rand() % 256;
-            tmpt.g = rand() % 256;
-            tmpt.b = rand() % 256;
 
             f[fi++] = tmpt;
         }

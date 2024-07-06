@@ -155,10 +155,10 @@ void Engine_run(struct Engine *e) {
 
     // Models.
     struct Model *model = Model_from_obj(
-        "models/cube.obj", 
+        "models/casa.obj", 
         0, 0, 0, 
         0, 0, 0, 
-        1, 1, 1
+        0.1, 0.1, 0.1
     );
     //struct Model *model = Model_unit_cube();
     printf("Triangle count = %d\n", model->num_tris);
@@ -308,12 +308,14 @@ void Engine_run(struct Engine *e) {
         // The following is something like a rendering pipeline. Specifically, the one specified in OpenGL.
         for (int i = 0; i < model->num_tris; ++i) {
             struct Tri t = model->mesh[i]; // Copy.
-            int r = t.r;
-            int g = t.g;
-            int b = t.b;
+
             struct Vector3 vert1 = t.v0.pos;
             struct Vector3 vert2 = t.v1.pos;
             struct Vector3 vert3 = t.v2.pos;
+
+            struct Vector3 col1 = t.v0.col;
+            struct Vector3 col2 = t.v1.col;
+            struct Vector3 col3 = t.v2.col;
             
             // Apply Model-View-Projection (MVP) to the three vertices and normal.            
             vert1 = Matrix4_vmul(&model->model_to_world, vert1);
@@ -426,21 +428,15 @@ void Engine_run(struct Engine *e) {
             // --- RASTERIZE TRIANGLE ---
             float x1 = vert1.x;
             float y1 = vert1.y;
+            float z1 = vert1.z;
 
             float x2 = vert2.x;
             float y2 = vert2.y;
+            float z2 = vert2.z;
 
             float x3 = vert3.x;
             float y3 = vert3.y;
-
-            // Calculate equation of plane in which the triangle lies for depth comparison.
-            plane_normal = Vector3_cross(Vector3_sub(vert2, vert1), Vector3_sub(vert3, vert1));
-
-            float a  = plane_normal.x;
-            float b_ = plane_normal.y;
-            float c  = plane_normal.z;
-            float c_inv = 1 / c;
-            float d  = -(a * x1 + b_ * y1 + c * vert1.z);
+            float z3 = vert3.z;
 
             // Finding bounding box of triangle (also considering the bounds of the screen).
             float bb_min_x = MAX(MIN(MIN(x1, x2), x3), 0);
@@ -449,21 +445,39 @@ void Engine_run(struct Engine *e) {
             float bb_max_y = MIN(MAX(MAX(y1, y2), y3), e->window_height);
             
             float px, py;
-            float z;
+            float w0, w1, w2;
             float buffer_depth;
+
+            float area_inv = 1 / _edge(x1, y1, x2, y2, x3, y3);
+
+            // Interpolated values.
+            float z;
+            int r, g, b;
+
             for (int y = bb_min_y; y < bb_max_y; ++y) {
                 for (int x = bb_min_x; x < bb_max_x; ++x) {
                     px = x + 0.5;
                     py = y + 0.5;
-                    if (_edge(x2, y2, x3, y3, px, py) >= 0 && 
-                        _edge(x3, y3, x1, y1, px, py) >= 0 && 
-                        _edge(x1, y1, x2, y2, px, py) >= 0) 
-                    {
-                        z = (-d - a * x - b_ * y) * c_inv;
+                    w0 = _edge(x2, y2, x3, y3, px, py);
+                    w1 = _edge(x3, y3, x1, y1, px, py);
+                    w2 = _edge(x1, y1, x2, y2, px, py);
+                    if (w0 >= 0 && w1 >= 0 && w2 >= 0) {
+                        // Barycentric coordinates.
+                        w0 *= area_inv;
+                        w1 *= area_inv;
+                        w2 *= area_inv;
+
+                        // Interpolate depth.
+                        z = z1 * w0 + z2 * w1 + z3 * w2;
+
+                        // Interpolate colour.
+                        r = col1.x * w0 + col2.x * w1 + col3.x * w2;
+                        g = col1.y * w0 + col2.y * w1 + col3.y * w2;
+                        b = col1.z * w0 + col2.z * w1 + col3.z * w2;
+
                         buffer_depth = e->depth_buffer[(e->window_width * y) + x];
                         if (z < buffer_depth || buffer_depth == -1) {
                             // The following is something like a fragment shader.
-                            //printf("%d %d %d %d %d\n", x, y, r, g, b);
                             Engine_set_pixel(e, x, y, r, g, b);
                             Engine_set_depth(e, x, y, z);
                         }

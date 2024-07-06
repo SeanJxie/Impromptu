@@ -5,13 +5,17 @@
 
 struct Vertex {
     struct Vector3 pos;
-    struct Vector3 normal;
+
+    // Vertex attributes
+
+    // Normal.
+    //struct Vector3 normal;
 
     // Texture coordiantes.
-    float tex_u, tex_v;
+    //float tex_u, tex_v;
 
     // Colour (optional use).
-    int r, g, b;
+    struct Vector3 col;
 };
 
 #endif
