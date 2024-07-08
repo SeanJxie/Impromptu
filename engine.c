@@ -53,7 +53,7 @@ struct Engine *Engine_create(int window_width, int window_height) {
     // Render options.
     e->wireframe           = 0;
     e->backface_culling    = 0;
-    e->show_vertex_normals = 1;
+    e->show_vertex_normals = 0;
     
     return e;
 }
@@ -155,7 +155,7 @@ void Engine_run(struct Engine *e) {
 
     // Models.
     struct Model *model = Model_from_obj(
-        "models/sphere.obj", 
+        "models/casa.obj", 
         0, 0, 1, 
         0, 0, 0, 
         1, 1, 1
@@ -230,7 +230,11 @@ void Engine_run(struct Engine *e) {
                 else if (event.key.keysym.sym == SDLK_LSHIFT) lshift_pressed = 1;
                 else if (event.key.keysym.sym == SDLK_SPACE)  space_pressed  = 1;
 
-                else if (event.key.keysym.sym == SDLK_r)      e->wireframe   = e->wireframe ? 0 : 1;
+                // Toggle options.
+                else if (event.key.keysym.sym == SDLK_1) e->wireframe           = e->wireframe           ? 0 : 1;
+                else if (event.key.keysym.sym == SDLK_2) e->backface_culling    = e->backface_culling    ? 0 : 1;
+                else if (event.key.keysym.sym == SDLK_3) e->show_vertex_normals = e->show_vertex_normals ? 0 : 1;
+
             } else if (event.type == SDL_KEYUP) {
                 if      (event.key.keysym.sym == SDLK_w)      w_pressed      = 0;
                 else if (event.key.keysym.sym == SDLK_s)      s_pressed      = 0;
@@ -356,11 +360,18 @@ void Engine_run(struct Engine *e) {
                 }
             }
 
-            // For rendering normals. These are locations of vertices plus their normals.
+            // For rendering normals in world space. These are locations of vertices plus their normals.
             // They are treated as any other vertex from this point on and processed in the pipeline.
+            
+            // Draw as 0.2 unit length vectors.
+            n0 = Vector3_smul(n0, 0.02);
+            n1 = Vector3_smul(n1, 0.02);
+            n2 = Vector3_smul(n2, 0.02);
+
             struct Vector3 vn0 = Vector3_add(v0, n0);
             struct Vector3 vn1 = Vector3_add(v1, n1);
             struct Vector3 vn2 = Vector3_add(v2, n2);
+            
             
             // View.
             v0 = Matrix4_vmul(&view, v0);
@@ -452,19 +463,17 @@ void Engine_run(struct Engine *e) {
 
             // --- SCREEN SPACE ----
 
-            // Perform rasterization of triangle.
-            if (e->wireframe) {
-                Engine_raster_tri_wireframe(e, v0, v1, v2, 255, 255, 255);
-                continue;
-            }
-
-            // --- RASTERIZE TRIANGLE ---
-
             // Draw vertex normals.
             if (e->show_vertex_normals) {
                 Engine_bresenham(e, v0.x, v0.y, vn0.x, vn0.y, 255, 255, 255);
                 Engine_bresenham(e, v1.x, v1.y, vn1.x, vn1.y, 255, 255, 255);
                 Engine_bresenham(e, v2.x, v2.y, vn2.x, vn2.y, 255, 255, 255);
+            }
+
+            // --- RASTERIZE TRIANGLE ---
+            if (e->wireframe) {
+                Engine_raster_tri_wireframe(e, v0, v1, v2, 255, 255, 255);
+                continue;
             }
             
             float x1 = v0.x;

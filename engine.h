@@ -41,7 +41,7 @@ struct Engine {
     int show_vertex_normals;
 };
 
-// We move Engines instances with heap pointers.
+// We move Engine instances with heap pointers.
 
 struct Engine *Engine_create(int window_width, int window_height);
 void           Engine_destroy(struct Engine *e);
