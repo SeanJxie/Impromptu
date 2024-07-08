@@ -16,6 +16,7 @@ main.c engine.c model.c vector3.c matrix4.c^
 -I[Path to SDL2 includes] ^
 -L[Path to SDL2 libraries] ^
 -lSDL2 -lSDL2main -lmingw32 ^
+-O2 ^
 -o impromptu.exe 
 ```
 

@@ -24,15 +24,15 @@ struct Model *Model_create(struct Tri *mesh, int num_tris, float x, float y, flo
 
 struct Model *Model_from_obj(const char *file_name, float x, float y, float z, float rx, float ry, float rz, float sx, float sy, float sz) {
     int num_tris;
-    struct Tri *mesh = parse_obj(file_name, &num_tris);
-    struct Model *out = Model_create(mesh, num_tris, x, y, z, rx, ry, rz, sx, sy, sz);
+    
+    struct Tri   *mesh = parse_obj(file_name, &num_tris);
+    struct Model *out  = Model_create(mesh, num_tris, x, y, z, rx, ry, rz, sx, sy, sz);
 
     return out;
 }
 
 void Model_destroy(struct Model *m) {
     free(m->mesh);
-    free(m->map_kd);
     free(m);
 }
 

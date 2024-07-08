@@ -14,9 +14,9 @@ struct Model {
     int num_tris;
 
     // Texture maps.
-    int            map_width;
-    int            map_height;
-    unsigned char *map_kd;
+    // int            map_width;
+    // int            map_height;
+    // unsigned char *map_kd;
 
     // The mesh coordinates are local to the model.
     // (i.e., the center of the model is (0, 0, 0)).

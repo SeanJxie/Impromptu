@@ -9,7 +9,7 @@ struct Vertex {
     // Vertex attributes
 
     // Normal.
-    //struct Vector3 normal;
+    struct Vector3 norm;
 
     // Texture coordiantes.
     //float tex_u, tex_v;

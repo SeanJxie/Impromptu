@@ -47,13 +47,13 @@ struct Engine *Engine_create(int window_width, int window_height) {
     }
 
     // Controls.
-    e->move_speed = 0.01;
+    e->move_speed = 0.005;
     e->look_speed = 0.0001;
 
     // Render options.
-    e->wireframe = 0;
-    e->backface_culling = 1;
-    e->show_normals     = 1;
+    e->wireframe           = 0;
+    e->backface_culling    = 0;
+    e->show_vertex_normals = 1;
     
     return e;
 }
@@ -155,10 +155,10 @@ void Engine_run(struct Engine *e) {
 
     // Models.
     struct Model *model = Model_from_obj(
-        "models/casa.obj", 
+        "models/sphere.obj", 
+        0, 0, 1, 
         0, 0, 0, 
-        0, 0, 0, 
-        0.1, 0.1, 0.1
+        1, 1, 1
     );
     //struct Model *model = Model_unit_cube();
     printf("Triangle count = %d\n", model->num_tris);
@@ -250,6 +250,9 @@ void Engine_run(struct Engine *e) {
         look_angle_horizontal -= e->look_speed * dt * (e->half_window_width  - mouse_x);
         look_angle_vertical   -= e->look_speed * dt * (e->half_window_height - mouse_y);  
 
+        // Clamp vertical to [-pi / 2, pi / 2].
+        look_angle_vertical = MAX(-M_PI * 0.5, MIN(M_PI * 0.5, look_angle_vertical));
+
         look_forward.x = cosf(look_angle_vertical) * sinf(look_angle_horizontal);
         look_forward.y = sinf(look_angle_vertical);
         look_forward.z = cosf(look_angle_vertical) * cosf(look_angle_horizontal);
@@ -288,8 +291,7 @@ void Engine_run(struct Engine *e) {
             camera_pos     = Vector3_add(camera_pos, move_direction);
         } 
 
-        Model_rotate(model, 0, dt * 0.01, 0);
-        //tmp_light_rotation_angle += dt * 0.001;
+        //Model_rotate(model, 0, dt * 0.01, 0);
 
         // Recompute view matrix.
         Matrix4_look_at(
@@ -298,6 +300,17 @@ void Engine_run(struct Engine *e) {
             look_up, 
             &view
         );
+
+        struct Matrix4 view_inv;
+        struct Matrix4 view_inv_transpose;
+        Matrix4_inverse(&view, &view_inv);
+        Matrix4_transpose(&view_inv, &view_inv_transpose);
+
+
+        struct Matrix4 model_inv;
+        struct Matrix4 model_inv_transpose;
+        Matrix4_inverse(&model->model_to_world, &model_inv);
+        Matrix4_transpose(&model_inv, &model_inv_transpose);
 
         // Clear frame buffers.
         memset(e->color_buffer, 0, e->color_buffer_size);
@@ -309,51 +322,63 @@ void Engine_run(struct Engine *e) {
         for (int i = 0; i < model->num_tris; ++i) {
             struct Tri t = model->mesh[i]; // Copy.
 
-            struct Vector3 vert1 = t.v0.pos;
-            struct Vector3 vert2 = t.v1.pos;
-            struct Vector3 vert3 = t.v2.pos;
-
-            struct Vector3 col1 = t.v0.col;
-            struct Vector3 col2 = t.v1.col;
-            struct Vector3 col3 = t.v2.col;
+            struct Vector3 v0 = t.v0.pos;
+            struct Vector3 v1 = t.v1.pos;
+            struct Vector3 v2 = t.v2.pos;
             
-            // Apply Model-View-Projection (MVP) to the three vertices and normal.            
-            vert1 = Matrix4_vmul(&model->model_to_world, vert1);
-            vert2 = Matrix4_vmul(&model->model_to_world, vert2);
-            vert3 = Matrix4_vmul(&model->model_to_world, vert3);
+            struct Vector3 c0 = t.v0.col;
+            struct Vector3 c1 = t.v1.col;
+            struct Vector3 c2 = t.v2.col;
 
-            struct Vector3 plane_normal = Vector3_cross(Vector3_sub(vert2, vert1), Vector3_sub(vert3, vert1));
-            struct Vector3 cam_ray = Vector3_sub(vert1, camera_pos);
+            struct Vector3 n0 = t.v0.norm;
+            struct Vector3 n1 = t.v1.norm;
+            struct Vector3 n2 = t.v2.norm;
+            
+            // Apply Model-View-Projection (MVP) to the three vertices and normals.     
 
-            // If face isn't facing camera, don't proceed (back-face culling).
-            if (Vector3_dot(plane_normal, cam_ray) >= 0) {
-                continue;
+            // Model.       
+            v0 = Matrix4_vmul(&model->model_to_world, v0);
+            v1 = Matrix4_vmul(&model->model_to_world, v1);
+            v2 = Matrix4_vmul(&model->model_to_world, v2);
+
+            // Normals to world space via inverse transpose of model.
+            n0 = Matrix4_vmul(&model->model_to_world, n0);
+            n1 = Matrix4_vmul(&model->model_to_world, n1);
+            n2 = Matrix4_vmul(&model->model_to_world, n2);
+
+            if (e->backface_culling) {
+                struct Vector3 plane_normal = Vector3_cross(Vector3_sub(v1, v0), Vector3_sub(v2, v0));
+                struct Vector3 cam_ray = Vector3_sub(v0, camera_pos);
+
+                // If face isn't facing camera, don't proceed (back-face culling).
+                if (Vector3_dot(plane_normal, cam_ray) >= 0) {
+                    continue;
+                }
             }
+
+            // For rendering normals. These are locations of vertices plus their normals.
+            // They are treated as any other vertex from this point on and processed in the pipeline.
+            struct Vector3 vn0 = Vector3_add(v0, n0);
+            struct Vector3 vn1 = Vector3_add(v1, n1);
+            struct Vector3 vn2 = Vector3_add(v2, n2);
             
-            // point_light.pos = Vector3_create_point(2 * cos(tmp_light_rotation_angle), 2 * sin(tmp_light_rotation_angle), 0);
+            // View.
+            v0 = Matrix4_vmul(&view, v0);
+            v1 = Matrix4_vmul(&view, v1);
+            v2 = Matrix4_vmul(&view, v2);
 
-            // // Illumniate face if facing light
-            // if (Vector3_dot(plane_normal, Vector3_sub(vert1, point_light.pos)) < 0) {
+            vn0 = Matrix4_vmul(&view, vn0);
+            vn1 = Matrix4_vmul(&view, vn1);
+            vn2 = Matrix4_vmul(&view, vn2);
 
-            //     // Inverse square law.
-            //     float light_intensity = LightSource_get_intensity(point_light, vert1);
+            // Projection.
+            v0 = Matrix4_vmul(&projection, v0);
+            v1 = Matrix4_vmul(&projection, v1);
+            v2 = Matrix4_vmul(&projection, v2);
 
-            //     r = MIN(t.r + light_intensity * 10, 255);
-            //     g = MIN(t.g + light_intensity * 10, 255);
-            //     b = MIN(t.b + light_intensity * 10, 255);
-
-            //     // r = MIN((r + light_intensity) * t.r, 255);
-            //     // g = MIN((g + light_intensity) * t.g, 255);
-            //     // b = MIN((b + light_intensity) * t.b, 255);
-            // }
-
-            vert1 = Matrix4_vmul(&view, vert1);
-            vert2 = Matrix4_vmul(&view, vert2);
-            vert3 = Matrix4_vmul(&view, vert3);
-
-            vert1 = Matrix4_vmul(&projection, vert1);
-            vert2 = Matrix4_vmul(&projection, vert2);
-            vert3 = Matrix4_vmul(&projection, vert3);
+            vn0 = Matrix4_vmul(&projection, vn0);
+            vn1 = Matrix4_vmul(&projection, vn1);
+            vn2 = Matrix4_vmul(&projection, vn2);
 
             // -- CULL IN CLIP SPACE --
             // 
@@ -361,82 +386,103 @@ void Engine_run(struct Engine *e) {
             // perspective divide and rasterization.
 
             // Entire triangle is out left.
-            if (vert1.x < -vert1.w && 
-                vert2.x < -vert2.w && 
-                vert3.x < -vert3.w) {
+            if (v0.x < -v0.w && 
+                v1.x < -v1.w && 
+                v2.x < -v2.w) {
                 continue;
             }
 
             // Entire triangle is out right.
-            if (vert1.x > vert1.w && 
-                vert2.x > vert2.w && 
-                vert3.x > vert3.w) {
+            if (v0.x > v0.w && 
+                v1.x > v1.w && 
+                v2.x > v2.w) {
                 continue;
             }
 
             // Entire triangle is out top.
-            if (vert1.y < -vert1.w && 
-                vert2.y < -vert2.w && 
-                vert3.y < -vert3.w) {
+            if (v0.y < -v0.w && 
+                v1.y < -v1.w && 
+                v2.y < -v2.w) {
                 continue;
             }
 
             // Entire triangle is out bottom.
-            if (vert1.y > vert1.w && 
-                vert2.y > vert2.w && 
-                vert3.y > vert3.w) {
+            if (v0.y > v0.w && 
+                v1.y > v1.w && 
+                v2.y > v2.w) {
                 continue;
             }
 
-            // Entire triangle is out near.
+            // Triangle is out near.
             // Cull the triangle even if only one vertex is out.
-            if (vert1.z < 0 || 
-                vert2.z < 0 || 
-                vert3.z < 0) {
+            if (v0.z < 0 || 
+                v1.z < 0 || 
+                v2.z < 0) {
                 continue;
             }
 
             // Entire triangle is out far.
-            if (vert1.z > vert1.w && 
-                vert2.z > vert2.w && 
-                vert3.z > vert3.w) {
+            if (v0.z > v0.w && 
+                v1.z > v1.w && 
+                v2.z > v2.w) {
                 continue;
             }
 
             // --- PERSPECTIVE DIVIDE ---
 
-            vert1 = Vector3_smul(vert1, 1 / vert1.w);
-            vert2 = Vector3_smul(vert2, 1 / vert2.w);
-            vert3 = Vector3_smul(vert3, 1 / vert3.w);
+            v0 = Vector3_smul(v0, 1 / v0.w);
+            v1 = Vector3_smul(v1, 1 / v1.w);
+            v2 = Vector3_smul(v2, 1 / v2.w);
 
+            vn0 = Vector3_smul(vn0, 1 / vn0.w);
+            vn1 = Vector3_smul(vn1, 1 / vn1.w);
+            vn2 = Vector3_smul(vn2, 1 / vn2.w);
+            
 
             // --- NORMALIZED DEVICE COORDINATE SPACE ----
 
             // Apply viewport transform to obtain screen coordinates.
-            vert1 = Matrix4_vmul(&viewport, vert1);
-            vert2 = Matrix4_vmul(&viewport, vert2);
-            vert3 = Matrix4_vmul(&viewport, vert3);
+            v0 = Matrix4_vmul(&viewport, v0);
+            v1 = Matrix4_vmul(&viewport, v1);
+            v2 = Matrix4_vmul(&viewport, v2);
+
+            vn0 = Matrix4_vmul(&viewport, vn0);
+            vn1 = Matrix4_vmul(&viewport, vn1);
+            vn2 = Matrix4_vmul(&viewport, vn2);
 
             // --- SCREEN SPACE ----
 
             // Perform rasterization of triangle.
             if (e->wireframe) {
-                Engine_raster_tri_wireframe(e, vert1, vert2, vert3, 255, 255, 255);
+                Engine_raster_tri_wireframe(e, v0, v1, v2, 255, 255, 255);
                 continue;
             }
 
             // --- RASTERIZE TRIANGLE ---
-            float x1 = vert1.x;
-            float y1 = vert1.y;
-            float z1 = vert1.z;
 
-            float x2 = vert2.x;
-            float y2 = vert2.y;
-            float z2 = vert2.z;
+            // Draw vertex normals.
+            if (e->show_vertex_normals) {
+                Engine_bresenham(e, v0.x, v0.y, vn0.x, vn0.y, 255, 255, 255);
+                Engine_bresenham(e, v1.x, v1.y, vn1.x, vn1.y, 255, 255, 255);
+                Engine_bresenham(e, v2.x, v2.y, vn2.x, vn2.y, 255, 255, 255);
+            }
+            
+            float x1 = v0.x;
+            float y1 = v0.y;
+            float z1 = v0.z;
 
-            float x3 = vert3.x;
-            float y3 = vert3.y;
-            float z3 = vert3.z;
+            float x2 = v1.x;
+            float y2 = v1.y;
+            float z2 = v1.z;
+
+            float x3 = v2.x;
+            float y3 = v2.y;
+            float z3 = v2.z;
+
+            // Transform unit normals (components in range [-1, 1]) to be suitable for colouring (components in range [0, 1]).
+            n0 = Vector3_add(Vector3_smul(Vector3_normalize(n0), 0.5), (struct Vector3){0.5, 0.5, 0.5});
+            n1 = Vector3_add(Vector3_smul(Vector3_normalize(n1), 0.5), (struct Vector3){0.5, 0.5, 0.5});
+            n2 = Vector3_add(Vector3_smul(Vector3_normalize(n2), 0.5), (struct Vector3){0.5, 0.5, 0.5});
 
             // Finding bounding box of triangle (also considering the bounds of the screen).
             float bb_min_x = MAX(MIN(MIN(x1, x2), x3), 0);
@@ -453,6 +499,7 @@ void Engine_run(struct Engine *e) {
             // Interpolated values.
             float z;
             int r, g, b;
+            float nx, ny, nz;
 
             for (int y = bb_min_y; y < bb_max_y; ++y) {
                 for (int x = bb_min_x; x < bb_max_x; ++x) {
@@ -471,14 +518,21 @@ void Engine_run(struct Engine *e) {
                         z = z1 * w0 + z2 * w1 + z3 * w2;
 
                         // Interpolate colour.
-                        r = col1.x * w0 + col2.x * w1 + col3.x * w2;
-                        g = col1.y * w0 + col2.y * w1 + col3.y * w2;
-                        b = col1.z * w0 + col2.z * w1 + col3.z * w2;
+                        r = c0.x * w0 + c1.x * w1 + c2.x * w2;
+                        g = c0.y * w0 + c1.y * w1 + c2.y * w2;
+                        b = c0.z * w0 + c1.z * w1 + c2.z * w2;
+
+                        // Interpolate normal.
+                        nx = n0.x * w0 + n1.x * w1 + n2.x * w2;
+                        ny = n0.y * w0 + n1.y * w1 + n2.y * w2;
+                        nz = n0.z * w0 + n1.z * w1 + n2.z * w2;
 
                         buffer_depth = e->depth_buffer[(e->window_width * y) + x];
+
+                        // Depth test.
                         if (z < buffer_depth || buffer_depth == -1) {
                             // The following is something like a fragment shader.
-                            Engine_set_pixel(e, x, y, r, g, b);
+                            Engine_set_pixel(e, x, y, nx * 255, ny * 255, nz * 255);
                             Engine_set_depth(e, x, y, z);
                         }
                     }

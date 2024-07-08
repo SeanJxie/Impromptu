@@ -38,7 +38,7 @@ struct Engine {
     // Render options.
     int wireframe;
     int backface_culling;
-    int show_normals;
+    int show_vertex_normals;
 };
 
 // We move Engines instances with heap pointers.

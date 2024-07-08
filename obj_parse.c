@@ -153,8 +153,7 @@ inline struct Tri *parse_obj(const char *file_name, int *out_n) {
 
                 if (len_slash_split_arr == 3 && strcmp("", slash_split_arr[2]) != 0) { // Optional vertex normal reference.
                     vnref = atoi(slash_split_arr[2]);
-                    (void)vnref; // NO-OP.
-                    //tmpv.normal = vn[vnref - 1];
+                    tmpv.norm = vn[vnref - 1];
                 }
 
                 switch (i) {
